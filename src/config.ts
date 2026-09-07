@@ -34,9 +34,8 @@ export interface AppConfig {
 export interface ExternalStreamAddonConfig {
   name: string;
   manifestUrl: string;
-  idFormat: "imdb" | "imdb-or-kitsu" | "imdb-or-tmdb-underscore";
-  position: "before-local" | "after-local" | "last";
-  timeoutMs?: number;
+  idFormat: "imdb" | "imdb-or-tmdb-underscore";
+  position: "before-local" | "last";
 }
 
 function optionalSecret(env: NodeJS.ProcessEnv, name: string): string | undefined {
@@ -118,7 +117,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const latinobridPmManifestUrl = optionalManifestUrl(env, "LATINOBRID_PM_MANIFEST_URL");
   const latinobridTbManifestUrl = optionalManifestUrl(env, "LATINOBRID_TB_MANIFEST_URL");
   const nubePlusManifestUrl = optionalManifestUrl(env, "NUBE_PLUS_MANIFEST_URL");
-  const nubeDebridManifestUrl = optionalManifestUrl(env, "NUBE_DEBRID_MANIFEST_URL");
   const noTorrentManifestUrl = optionalManifestUrl(env, "NOTORRENT_MANIFEST_URL");
   if (latinobridPmManifestUrl) {
     externalStreamAddons.push({
@@ -142,15 +140,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       manifestUrl: nubePlusManifestUrl,
       idFormat: "imdb",
       position: "before-local",
-    });
-  }
-  if (nubeDebridManifestUrl) {
-    externalStreamAddons.push({
-      name: "Nube Debrid",
-      manifestUrl: nubeDebridManifestUrl,
-      idFormat: "imdb-or-kitsu",
-      position: "after-local",
-      timeoutMs: 25_000,
     });
   }
   if (noTorrentManifestUrl) {

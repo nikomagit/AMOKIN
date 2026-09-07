@@ -35,7 +35,5 @@ services:
         sync: false
       - key: NUBE_PLUS_MANIFEST_URL
         sync: false
-      - key: NUBE_DEBRID_MANIFEST_URL
-        sync: false
       - key: NOTORRENT_MANIFEST_URL
         sync: false
