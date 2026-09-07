@@ -1,8 +1,8 @@
 # AMOKIN para Nuvio/Stremio
 
-AMOKIN es un addon con reproducción HTTP/HTTPS directa desde [AnimeAV1](https://animeav1.com/), [Hentaila](https://hentaila.com/) y [JKAnime](https://jkanime.net/), además de fuentes externas de streams configurables. Los catálogos y metadatos de esas fuentes externas no se importan.
+AMOKIN resuelve reproducción HTTP/HTTPS directa desde [AnimeAV1](https://animeav1.com/), [Hentaila](https://hentaila.com/) y [JKAnime](https://jkanime.net/), y también combina respuestas de addons externos configurables. Los catálogos y metadatos de esos addons externos no se importan.
 
-Solo entrega entradas con una URL HTTP/HTTPS directa. Filtra torrents, magnet links, `infoHash`, trackers y enlaces promocionales; el manifest declara `p2p: false`.
+Latinobrid se integra como un agregador externo de resultados en español latino, con un funcionamiento comparable a Comet o Torrentio y respaldado por las cuentas PM/TB configuradas; no se considera un proveedor HTTP propio de AMOKIN. Al cliente solo se reenvían entradas con una URL HTTP/HTTPS reproducible. Se filtran torrents sin resolver, magnet links, `infoHash`, trackers y enlaces promocionales; el manifest declara `p2p: false`.
 
 > Los sitios y hosts de vídeo son servicios de terceros. Usa el proyecto solo donde el contenido y el acceso estén permitidos, respetando sus términos y la legislación aplicable. AMOKIN no evita autenticación, CAPTCHA, DRM, protecciones anti-bot ni restricciones de acceso.
 

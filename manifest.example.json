@@ -1,9 +1,9 @@
 {
   "id": "org.nuvio.amokin",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "name": "AMOKIN",
   "logo": "https://amokin.onrender.com/logo.jpg",
-  "description": "Streams HTTP/HTTPS de AMOKIN y fuentes externas configuradas, sin importar sus catalogos y sin P2P.",
+  "description": "Streams propios de AMOKIN y resultados de addons externos configurados, sin importar sus catalogos.",
   "catalogs": [
     { "type": "series", "id": "hentaila-popular", "name": "Hentaila — Populares", "extra": [{ "name": "skip", "isRequired": false }] },
     { "type": "series", "id": "hentaila-airing", "name": "Hentaila — Al aire", "extra": [{ "name": "skip", "isRequired": false }] },

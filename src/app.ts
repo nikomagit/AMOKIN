@@ -108,7 +108,7 @@ export async function buildApp(
       logo: "/logo.jpg",
       health: "/health",
       sources: ["AnimeAV1", "Hentaila", "JKAnime", ...config.externalStreamAddons.map((source) => source.name)],
-      streaming: "Direct HTTP/HTTPS only",
+      streaming: "AMOKIN direct sources + configured stream addons",
       p2p: false,
     };
   });
