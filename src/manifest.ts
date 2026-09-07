@@ -2,11 +2,11 @@ import { catalogDefinitions } from "./catalogs.js";
 
 export const manifest = Object.freeze({
   id: "org.nuvio.amokin",
-  version: "2.2.1",
+  version: "2.2.2",
   name: "AMOKIN",
   logo: "https://amokin.onrender.com/logo.jpg",
   description:
-    "Streams propios de AMOKIN y resultados de addons externos configurados, sin importar sus catalogos.",
+    "Contenido en Latino y sin torrents para Nuvio/Stremio, creado por y para NIKOMA.",
   catalogs: catalogDefinitions.map((catalog) => ({
     type: "series",
     id: catalog.id,

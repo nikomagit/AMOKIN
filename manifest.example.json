@@ -1,9 +1,9 @@
 {
   "id": "org.nuvio.amokin",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "name": "AMOKIN",
   "logo": "https://amokin.onrender.com/logo.jpg",
-  "description": "Streams propios de AMOKIN y resultados de addons externos configurados, sin importar sus catalogos.",
+  "description": "Contenido en Latino y sin torrents para Nuvio/Stremio, creado por y para NIKOMA.",
   "catalogs": [
     { "type": "series", "id": "hentaila-popular", "name": "Hentaila — Populares", "extra": [{ "name": "skip", "isRequired": false }] },
     { "type": "series", "id": "hentaila-airing", "name": "Hentaila — Al aire", "extra": [{ "name": "skip", "isRequired": false }] },
