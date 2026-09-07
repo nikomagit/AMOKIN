@@ -57,19 +57,28 @@ export class ExternalStreamAggregator implements StreamSearchService {
   ) {}
 
   async getStreams(type: string, id: string): Promise<AddonStream[]> {
-    const remoteRequests = this.config.externalStreamAddons.flatMap((source) => {
+    const primaryRemoteRequests: Promise<ExternalStream[]>[] = [];
+    const noTorrentRequests: Promise<ExternalStream[]>[] = [];
+    for (const source of this.config.externalStreamAddons) {
       const externalId = remoteMediaId(source, id);
-      if (!externalId || !(type === "movie" || type === "series")) return [];
-      return [this.request(streamEndpoint(source.manifestUrl, type, externalId), {
+      if (!externalId || !(type === "movie" || type === "series")) continue;
+      const request = this.request(streamEndpoint(source.manifestUrl, type, externalId), {
         timeoutMs: this.config.requestTimeoutMs,
         maxBytes: this.config.maxResponseBytes,
         upstream: source.name,
         headers: { "User-Agent": this.config.userAgent, Accept: "application/json" },
-      }).then((payload) => directStreams(payload, source.name))];
-    });
-    if (remoteRequests.length === 0) return this.local.getStreams(type, id);
+      }).then((payload) => directStreams(payload, source.name));
+      (source.name === "NoTorrent" ? noTorrentRequests : primaryRemoteRequests).push(request);
+    }
+    if (primaryRemoteRequests.length === 0 && noTorrentRequests.length === 0) {
+      return this.local.getStreams(type, id);
+    }
 
-    const settled = await Promise.allSettled([this.local.getStreams(type, id), ...remoteRequests]);
+    const settled = await Promise.allSettled([
+      ...primaryRemoteRequests,
+      this.local.getStreams(type, id),
+      ...noTorrentRequests,
+    ]);
     const unique = new Map<string, AddonStream>();
     for (const result of settled) {
       if (result.status !== "fulfilled") continue;

@@ -21,7 +21,7 @@ describe("HTTP addon interface", () => {
     const body = response.json();
     expect(body).toMatchObject({
       id: "org.nuvio.amokin",
-      version: "2.2.2",
+      version: "2.2.3",
       name: "AMOKIN",
       description: "Contenido en Latino y sin torrents para Nuvio/Stremio, creado por y para NIKOMA.",
       logo: "https://amokin.onrender.com/logo.jpg",
@@ -44,7 +44,7 @@ describe("HTTP addon interface", () => {
     const health = await app.inject({ method: "GET", url: "/health" });
     expect(health.statusCode).toBe(200);
     expect(health.json()).toMatchObject({
-      version: "2.2.2",
+      version: "2.2.3",
       p2p: false,
       sources: ["AnimeAV1", "Hentaila", "JKAnime"],
     });

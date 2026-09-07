@@ -10,6 +10,11 @@ const addons = [
     idFormat: "imdb" as const,
   },
   {
+    name: "Latinobrid TB",
+    manifestUrl: "https://latin-tb.example/private/manifest.json",
+    idFormat: "imdb" as const,
+  },
+  {
     name: "NoTorrent",
     manifestUrl: "https://direct.example/manifest.json?token=private",
     idFormat: "imdb-or-tmdb-underscore" as const,
@@ -17,18 +22,21 @@ const addons = [
 ];
 
 describe("external stream aggregation", () => {
-  it("combines current AMOKIN streams with direct streams from configured addons", async () => {
+  it("places Latinobrid before AMOKIN and NoTorrent after it", async () => {
     const local: StreamSearchService = {
       getStreams: vi.fn().mockResolvedValue([{ name: "AMOKIN", url: "https://video.example/local.m3u8" }]),
     } as StreamSearchService;
-    const request = vi.fn().mockResolvedValue(JSON.stringify({
-      streams: [
-        { name: "External", url: "https://video.example/remote.m3u8", behaviorHints: { notWebReady: true } },
-        { name: "Duplicate", url: "https://video.example/local.m3u8" },
-        { name: "Torrent", infoHash: "hash", sources: ["tracker:test"] },
-        { name: "Promotion", externalUrl: "https://chat.example" },
-      ],
-    }));
+    const request = vi.fn()
+      .mockResolvedValueOnce('{"streams":[{"name":"Latinobrid PM","url":"https://video.example/pm.m3u8"}]}')
+      .mockResolvedValueOnce('{"streams":[{"name":"Latinobrid TB","url":"https://video.example/tb.m3u8"}]}')
+      .mockResolvedValueOnce(JSON.stringify({
+        streams: [
+          { name: "NoTorrent", url: "https://video.example/notorrent.m3u8", behaviorHints: { notWebReady: true } },
+          { name: "Duplicate", url: "https://video.example/local.m3u8" },
+          { name: "Torrent", infoHash: "hash", sources: ["tracker:test"] },
+          { name: "Promotion", externalUrl: "https://chat.example" },
+        ],
+      }));
     const service = new ExternalStreamAggregator(
       testConfig({ externalStreamAddons: addons }),
       local,
@@ -36,10 +44,12 @@ describe("external stream aggregation", () => {
     );
 
     await expect(service.getStreams("movie", "tt0133093")).resolves.toEqual([
+      expect.objectContaining({ name: "Latinobrid PM", url: "https://video.example/pm.m3u8" }),
+      expect.objectContaining({ name: "Latinobrid TB", url: "https://video.example/tb.m3u8" }),
       expect.objectContaining({ name: "AMOKIN", url: "https://video.example/local.m3u8" }),
-      expect.objectContaining({ name: "External", url: "https://video.example/remote.m3u8" }),
+      expect.objectContaining({ name: "NoTorrent", url: "https://video.example/notorrent.m3u8" }),
     ]);
-    expect(request).toHaveBeenCalledTimes(2);
+    expect(request).toHaveBeenCalledTimes(3);
   });
 
   it("preserves manifest query credentials and translates AMOKIN TMDB IDs for NoTorrent", async () => {
@@ -64,7 +74,8 @@ describe("external stream aggregation", () => {
     const local = { getStreams: vi.fn().mockRejectedValue(new Error("local unavailable")) };
     const request = vi.fn()
       .mockRejectedValueOnce(new Error("first addon unavailable"))
-      .mockResolvedValueOnce('{"streams":[{"name":"Available","url":"https://video.example/ok.mp4"}]}');
+      .mockResolvedValueOnce('{"streams":[{"name":"Available","url":"https://video.example/ok.mp4"}]}')
+      .mockResolvedValueOnce('{"streams":[]}');
     const service = new ExternalStreamAggregator(
       testConfig({ externalStreamAddons: addons }),
       local,

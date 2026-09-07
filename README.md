@@ -26,6 +26,7 @@ La versión pública actual se despliega automáticamente desde la rama `main` e
 - Matching por identidad externa cuando el proveedor la expone; alias, año, tipo, temporada y episodio como fallback conservador.
 - Resolución de temporadas que el proveedor publica como fichas independientes.
 - Agregación opcional de los streams de Latinobrid PM, Latinobrid TB y NoTorrent, sin importar sus catálogos.
+- Orden de streams: Latinobrid PM/TB, contenido propio de AMOKIN y, al final, NoTorrent.
 - Deduplicación por URL final, cachés TTL, timeouts y aislamiento de errores por proveedor/resolver.
 - Tres catálogos Hentaila: populares, al aire y sin censura.
 
