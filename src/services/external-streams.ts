@@ -11,6 +11,9 @@ function remoteMediaId(source: ExternalStreamAddonConfig, rawId: string): string
     const tmdb = /^tmdb:(\d+(?::\d+:\d+)?)$/.exec(rawId);
     if (tmdb?.[1]) return `tmdb_${tmdb[1]}`;
   }
+  if (source.idFormat === "imdb-or-kitsu" && /^kitsu:\d+(?::\d+){0,2}$/.test(rawId)) {
+    return rawId;
+  }
   return null;
 }
 
@@ -57,8 +60,9 @@ export class ExternalStreamAggregator implements StreamSearchService {
   ) {}
 
   async getStreams(type: string, id: string): Promise<AddonStream[]> {
-    const primaryRemoteRequests: Promise<ExternalStream[]>[] = [];
-    const noTorrentRequests: Promise<ExternalStream[]>[] = [];
+    const beforeLocalRequests: Promise<ExternalStream[]>[] = [];
+    const afterLocalRequests: Promise<ExternalStream[]>[] = [];
+    const finalRequests: Promise<ExternalStream[]>[] = [];
     for (const source of this.config.externalStreamAddons) {
       const externalId = remoteMediaId(source, id);
       if (!externalId || !(type === "movie" || type === "series")) continue;
@@ -68,16 +72,22 @@ export class ExternalStreamAggregator implements StreamSearchService {
         upstream: source.name,
         headers: { "User-Agent": this.config.userAgent, Accept: "application/json" },
       }).then((payload) => directStreams(payload, source.name));
-      (source.name === "NoTorrent" ? noTorrentRequests : primaryRemoteRequests).push(request);
+      const destination = source.position === "before-local"
+        ? beforeLocalRequests
+        : source.position === "after-local"
+          ? afterLocalRequests
+          : finalRequests;
+      destination.push(request);
     }
-    if (primaryRemoteRequests.length === 0 && noTorrentRequests.length === 0) {
+    if (beforeLocalRequests.length === 0 && afterLocalRequests.length === 0 && finalRequests.length === 0) {
       return this.local.getStreams(type, id);
     }
 
     const settled = await Promise.allSettled([
-      ...primaryRemoteRequests,
+      ...beforeLocalRequests,
       this.local.getStreams(type, id),
-      ...noTorrentRequests,
+      ...afterLocalRequests,
+      ...finalRequests,
     ]);
     const unique = new Map<string, AddonStream>();
     for (const result of settled) {
