@@ -3,6 +3,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { AppConfig } from "./config.js";
+import type { FetchText } from "./lib/http.js";
 import {
   AppError,
   InvalidMediaRequestError,
@@ -17,12 +18,14 @@ import { DirectStreamResolverRegistry } from "./providers/resolvers.js";
 import { ProviderCatalogService } from "./services/catalog.js";
 import { ProviderMetaService } from "./services/meta.js";
 import { ProviderSearchService } from "./services/search.js";
+import { ExternalStreamAggregator } from "./services/external-streams.js";
 import type { CatalogService, MetaService, StreamSearchService } from "./types.js";
 
 export interface AppDependencies {
   searchService?: StreamSearchService;
   catalogService?: CatalogService;
   metaService?: MetaService;
+  externalStreamRequest?: FetchText;
 }
 
 interface StreamParams {
@@ -82,10 +85,15 @@ export async function buildApp(
   const jkAnime = new JkAnimeClient(config);
   const animeProviders = [animeAv1, hentaila, jkAnime];
   const resolvers = new DirectStreamResolverRegistry(config);
-  const searchService = dependencies.searchService ?? new ProviderSearchService(
+  const localSearchService = dependencies.searchService ?? new ProviderSearchService(
     config,
     new RemoteMetadataProvider(config),
     animeProviders.map((provider) => ({ provider, resolvers })),
+  );
+  const searchService = new ExternalStreamAggregator(
+    config,
+    localSearchService,
+    dependencies.externalStreamRequest,
   );
   const catalogService = dependencies.catalogService ?? new ProviderCatalogService(animeProviders);
   const metaService = dependencies.metaService ?? new ProviderMetaService(animeProviders);
@@ -99,7 +107,7 @@ export async function buildApp(
       manifest: "/manifest.json",
       logo: "/logo.jpg",
       health: "/health",
-      sources: ["AnimeAV1", "Hentaila", "JKAnime"],
+      sources: ["AnimeAV1", "Hentaila", "JKAnime", ...config.externalStreamAddons.map((source) => source.name)],
       streaming: "Direct HTTP/HTTPS only",
       p2p: false,
     };
@@ -119,7 +127,12 @@ export async function buildApp(
 
   app.get("/health", async (_request, reply) => {
     void reply.header("cache-control", "no-store");
-    return { status: "ok", version: manifest.version, sources: ["AnimeAV1", "Hentaila", "JKAnime"], p2p: false };
+    return {
+      status: "ok",
+      version: manifest.version,
+      sources: ["AnimeAV1", "Hentaila", "JKAnime", ...config.externalStreamAddons.map((source) => source.name)],
+      p2p: false,
+    };
   });
 
   const serveCatalog = async (

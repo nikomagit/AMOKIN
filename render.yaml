@@ -29,3 +29,9 @@ services:
         value: es-ES
       - key: TMDB_API_KEY
         sync: false
+      - key: LATINOBRID_PM_MANIFEST_URL
+        sync: false
+      - key: LATINOBRID_TB_MANIFEST_URL
+        sync: false
+      - key: NOTORRENT_MANIFEST_URL
+        sync: false

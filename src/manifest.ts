@@ -2,11 +2,11 @@ import { catalogDefinitions } from "./catalogs.js";
 
 export const manifest = Object.freeze({
   id: "org.nuvio.amokin",
-  version: "2.1.1",
+  version: "2.2.0",
   name: "AMOKIN",
   logo: "https://amokin.onrender.com/logo.jpg",
   description:
-    "Streams HTTP/HTTPS directos de AnimeAv1, JKanime y Hentaila, sin P2P ni adicionales. No esta vinculado a ninguna de las 3 plataformas mencionadas.",
+    "Streams HTTP/HTTPS de AMOKIN y fuentes externas configuradas, sin importar sus catalogos y sin P2P.",
   catalogs: catalogDefinitions.map((catalog) => ({
     type: "series",
     id: catalog.id,

@@ -1,8 +1,8 @@
 # AMOKIN para Nuvio/Stremio
 
-AMOKIN es un addon de anime con reproducción HTTP/HTTPS directa desde [AnimeAV1](https://animeav1.com/), [Hentaila](https://hentaila.com/) y [JKAnime](https://jkanime.net/). No incluye proveedores generales de películas/series.
+AMOKIN es un addon con reproducción HTTP/HTTPS directa desde [AnimeAV1](https://animeav1.com/), [Hentaila](https://hentaila.com/) y [JKAnime](https://jkanime.net/), además de fuentes externas de streams configurables. Los catálogos y metadatos de esas fuentes externas no se importan.
 
-No usa torrents, magnet links, `infoHash`, P2P, TorBox, Real-Debrid ni descargas locales. El manifest declara `p2p: false`.
+Solo entrega entradas con una URL HTTP/HTTPS directa. Filtra torrents, magnet links, `infoHash`, trackers y enlaces promocionales; el manifest declara `p2p: false`.
 
 > Los sitios y hosts de vídeo son servicios de terceros. Usa el proyecto solo donde el contenido y el acceso estén permitidos, respetando sus términos y la legislación aplicable. AMOKIN no evita autenticación, CAPTCHA, DRM, protecciones anti-bot ni restricciones de acceso.
 
@@ -25,6 +25,7 @@ La versión pública actual se despliega automáticamente desde la rama `main` e
 - Títulos original, inglés, japonés, romaji y sinónimos mediante AniList.
 - Matching por identidad externa cuando el proveedor la expone; alias, año, tipo, temporada y episodio como fallback conservador.
 - Resolución de temporadas que el proveedor publica como fichas independientes.
+- Agregación opcional de los streams de Latinobrid PM, Latinobrid TB y NoTorrent, sin importar sus catálogos.
 - Deduplicación por URL final, cachés TTL, timeouts y aislamiento de errores por proveedor/resolver.
 - Tres catálogos Hentaila: populares, al aire y sin censura.
 
@@ -91,7 +92,7 @@ El servidor queda en `http://127.0.0.1:7100`; para desarrollo usa `npm run dev`.
 
 ## Configuración
 
-La configuración predeterminada funciona con IDs nativos y las bases públicas disponibles. Para compatibilidad fiable con todos los IDs TMDB, configura `TMDB_API_KEY`. Copia `.env.example` como `.env` solo para modificarla.
+La configuración predeterminada funciona con IDs nativos y las bases públicas disponibles. Para compatibilidad fiable con todos los IDs TMDB, configura `TMDB_API_KEY`. Copia `.env.example` como `.env` solo para modificarla. Las URLs de manifests externos pueden contener credenciales: guárdalas como variables privadas del entorno y nunca las publiques en Git.
 
 | Variable | Predeterminado | Uso |
 |---|---|---|
@@ -108,9 +109,12 @@ La configuración predeterminada funciona con IDs nativos y las bases públicas 
 | `METADATA_FALLBACK_BASE_URL` | addon TMDB público | Metadatos TMDB sin clave. |
 | `TMDB_API_KEY` | vacío | Metadatos oficiales y aliases TMDB; recomendada en producción y siempre privada. |
 | `TMDB_LANGUAGE` | `es-ES` | Idioma solicitado a TMDB. |
+| `LATINOBRID_PM_MANIFEST_URL` | vacío | Manifest privado de Latinobrid PM; solo se consulta su recurso `stream`. |
+| `LATINOBRID_TB_MANIFEST_URL` | vacío | Manifest privado de Latinobrid TB; solo se consulta su recurso `stream`. |
+| `NOTORRENT_MANIFEST_URL` | vacío | Manifest privado de NoTorrent; conserva su token en las consultas de streams. |
 | `REQUEST_TIMEOUT_MS` | `10000` | Timeout de proveedores/hosts. |
 | `METADATA_TIMEOUT_MS` | `6000` | Timeout de metadatos/mapas. |
-| `MAX_STREAMS` | `8` | Máximo total de streams. |
+| `MAX_STREAMS` | `8` | Máximo de streams propios por resolución; los externos válidos se agregan después. |
 | `MIN_MATCH_SCORE` | `0.72` | Umbral conservador de matching. |
 
 ## Docker y despliegue
@@ -136,9 +140,12 @@ Nuvio / Stremio
   ├─ /meta    → ID amokin → ficha y episodios
   └─ /stream
        ├─ ID amokin → proveedor conocido
-       └─ ID externo → metadata + mapa de IDs + aliases AniList
-            → AnimeAV1 / Hentaila / JKAnime
-            → matching → episodio → resolver HTTP → deduplicación
+       └─ ID externo
+            ├─ metadata + mapa de IDs + aliases AniList
+            │    → AnimeAV1 / Hentaila / JKAnime
+            │    → matching → episodio → resolver HTTP
+            └─ manifests externos configurados → solo /stream
+                 → filtro HTTP/HTTPS → deduplicación
 ```
 
 - `src/metadata/`: parser, consultores y mapa de IDs.

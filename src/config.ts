@@ -28,6 +28,13 @@ export interface AppConfig {
   cacheMaxEntries: number;
   userAgent: string;
   playbackUserAgent: string;
+  externalStreamAddons: ExternalStreamAddonConfig[];
+}
+
+export interface ExternalStreamAddonConfig {
+  name: string;
+  manifestUrl: string;
+  idFormat: "imdb" | "imdb-or-tmdb-underscore";
 }
 
 function optionalSecret(env: NodeJS.ProcessEnv, name: string): string | undefined {
@@ -84,12 +91,51 @@ function baseUrl(env: NodeJS.ProcessEnv, name: string, fallback: string): string
   return value.toString().replace(/\/$/, "");
 }
 
+function optionalManifestUrl(env: NodeJS.ProcessEnv, name: string): string | undefined {
+  const raw = optionalSecret(env, name);
+  if (!raw) return undefined;
+  const value = new URL(raw);
+  if (!(value.protocol === "http:" || value.protocol === "https:")) {
+    throw new Error(`${name} must use http or https`);
+  }
+  if (value.username || value.password || !value.pathname.endsWith("/manifest.json")) {
+    throw new Error(`${name} must be an addon manifest URL without embedded basic-auth credentials`);
+  }
+  value.hash = "";
+  return value.toString();
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const port = integer(env, "PORT", 7100, 1, 65_535);
   const tmdbApiKey = optionalSecret(env, "TMDB_API_KEY");
   const tmdbLanguage = env.TMDB_LANGUAGE?.trim() || "es-ES";
   if (!/^[a-z]{2}(?:-[A-Z]{2})?$/.test(tmdbLanguage)) {
     throw new Error("TMDB_LANGUAGE must look like es or es-ES");
+  }
+  const externalStreamAddons: ExternalStreamAddonConfig[] = [];
+  const latinobridPmManifestUrl = optionalManifestUrl(env, "LATINOBRID_PM_MANIFEST_URL");
+  const latinobridTbManifestUrl = optionalManifestUrl(env, "LATINOBRID_TB_MANIFEST_URL");
+  const noTorrentManifestUrl = optionalManifestUrl(env, "NOTORRENT_MANIFEST_URL");
+  if (latinobridPmManifestUrl) {
+    externalStreamAddons.push({
+      name: "Latinobrid PM",
+      manifestUrl: latinobridPmManifestUrl,
+      idFormat: "imdb",
+    });
+  }
+  if (latinobridTbManifestUrl) {
+    externalStreamAddons.push({
+      name: "Latinobrid TB",
+      manifestUrl: latinobridTbManifestUrl,
+      idFormat: "imdb",
+    });
+  }
+  if (noTorrentManifestUrl) {
+    externalStreamAddons.push({
+      name: "NoTorrent",
+      manifestUrl: noTorrentManifestUrl,
+      idFormat: "imdb-or-tmdb-underscore",
+    });
   }
 
   return {
@@ -160,5 +206,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       env.PLAYBACK_USER_AGENT?.trim() ||
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
         "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    externalStreamAddons,
   };
 }
