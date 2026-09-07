@@ -1,6 +1,6 @@
 {
   "name": "amokin",
-  "version": "2.2.4",
+  "version": "2.2.5",
   "description": "AMOKIN: catálogos y streams HTTP directos de anime para Nuvio/Stremio.",
   "type": "module",
   "private": true,

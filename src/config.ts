@@ -36,6 +36,7 @@ export interface ExternalStreamAddonConfig {
   manifestUrl: string;
   idFormat: "imdb" | "imdb-or-kitsu" | "imdb-or-tmdb-underscore";
   position: "before-local" | "after-local" | "last";
+  timeoutMs?: number;
 }
 
 function optionalSecret(env: NodeJS.ProcessEnv, name: string): string | undefined {
@@ -149,6 +150,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       manifestUrl: nubeDebridManifestUrl,
       idFormat: "imdb-or-kitsu",
       position: "after-local",
+      timeoutMs: 25_000,
     });
   }
   if (noTorrentManifestUrl) {

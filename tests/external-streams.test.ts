@@ -27,6 +27,7 @@ const addons = [
     manifestUrl: "https://nube-debrid.example/private/manifest.json",
     idFormat: "imdb-or-kitsu" as const,
     position: "after-local" as const,
+    timeoutMs: 25_000,
   },
   {
     name: "NoTorrent",
@@ -123,5 +124,6 @@ describe("external stream aggregation", () => {
     const url = request.mock.calls[0]?.[0] as URL;
     expect(url.origin).toBe("https://nube-debrid.example");
     expect(decodeURIComponent(url.pathname)).toBe("/private/stream/series/kitsu:12:1.json");
+    expect(request.mock.calls[0]?.[1]).toMatchObject({ timeoutMs: 25_000 });
   });
 });

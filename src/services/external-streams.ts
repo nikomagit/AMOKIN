@@ -67,7 +67,7 @@ export class ExternalStreamAggregator implements StreamSearchService {
       const externalId = remoteMediaId(source, id);
       if (!externalId || !(type === "movie" || type === "series")) continue;
       const request = this.request(streamEndpoint(source.manifestUrl, type, externalId), {
-        timeoutMs: this.config.requestTimeoutMs,
+        timeoutMs: source.timeoutMs ?? this.config.requestTimeoutMs,
         maxBytes: this.config.maxResponseBytes,
         upstream: source.name,
         headers: { "User-Agent": this.config.userAgent, Accept: "application/json" },

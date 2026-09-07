@@ -44,6 +44,7 @@ describe("metadata configuration", () => {
         manifestUrl: "https://debrid.example/private/manifest.json",
         idFormat: "imdb-or-kitsu",
         position: "after-local",
+        timeoutMs: 25_000,
       },
       {
         name: "NoTorrent",

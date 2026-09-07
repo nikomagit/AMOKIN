@@ -2,7 +2,7 @@ import { catalogDefinitions } from "./catalogs.js";
 
 export const manifest = Object.freeze({
   id: "org.nuvio.amokin",
-  version: "2.2.4",
+  version: "2.2.5",
   name: "AMOKIN",
   logo: "https://amokin.onrender.com/logo.jpg",
   description:
