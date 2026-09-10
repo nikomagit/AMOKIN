@@ -3,7 +3,7 @@ import { LATAM_TV_CATALOG_ID, LATAM_TV_GENRES } from "./experimental/latam-tv/cl
 
 export const manifest = Object.freeze({
   id: "org.nuvio.amokin",
-  version: "2.3.0",
+  version: "2.3.1",
   name: "AMOKIN",
   logo: "https://amokin.onrender.com/logo.jpg",
   description:

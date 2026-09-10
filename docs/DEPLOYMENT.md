@@ -18,6 +18,8 @@ https://amokin.onrender.com/manifest.json
 
 El servicio de Render está conectado a la rama `main`; cada actualización inicia un despliegue automático. El plan gratuito puede entrar en reposo y provocar un arranque lento en la primera solicitud.
 
+La TV en vivo pasa por el proxy HLS de AMOKIN porque las firmas del proveedor están vinculadas a la IP de resolución. El consumo de ancho de banda del servicio aumenta mientras haya reproducciones activas.
+
 ## Render desde cero
 
 1. Crea un repositorio de GitHub sin `.env`, `node_modules` ni `dist`.

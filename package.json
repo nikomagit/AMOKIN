@@ -1,6 +1,6 @@
 {
   "name": "amokin",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "AMOKIN: anime y TV en vivo mediante streams HTTP directos para Nuvio/Stremio.",
   "type": "module",
   "private": true,

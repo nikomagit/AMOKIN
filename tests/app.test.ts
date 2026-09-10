@@ -22,7 +22,7 @@ describe("HTTP addon interface", () => {
     const body = response.json();
     expect(body).toMatchObject({
       id: "org.nuvio.amokin",
-      version: "2.3.0",
+      version: "2.3.1",
       name: "AMOKIN",
       description: "Contenido en Latino y sin torrents para Nuvio/Stremio, creado por y para NIKOMA.",
       logo: "https://amokin.onrender.com/logo.jpg",
@@ -51,7 +51,7 @@ describe("HTTP addon interface", () => {
     const health = await app.inject({ method: "GET", url: "/health" });
     expect(health.statusCode).toBe(200);
     expect(health.json()).toMatchObject({
-      version: "2.3.0",
+      version: "2.3.1",
       p2p: false,
       sources: ["AnimeAV1", "Hentaila", "JKAnime", "LATAM TV"],
     });
@@ -127,9 +127,25 @@ describe("HTTP addon interface", () => {
       }
       throw new Error(`Unexpected LATAM TV URL: ${value.href}`);
     });
+    const latamTvProxyRequest = vi.fn(async (url: string) => {
+      const value = new URL(url);
+      if (value.pathname === "/playlist.php") {
+        return new Response(
+          "#EXTM3U\n#EXT-X-TARGETDURATION:10\n#EXTINF:10,\nhttps://player.example/live/segment.ts?token=fresh\n",
+          { headers: { "content-type": "application/vnd.apple.mpegurl" } },
+        );
+      }
+      if (value.pathname === "/live/segment.ts") {
+        return new Response(new Uint8Array([0x47, 0x40, 0x00, 0x10]), {
+          headers: { "content-type": "video/mp2t" },
+        });
+      }
+      return new Response("not found", { status: 404 });
+    });
     const app = await buildApp(testConfig(), {
       searchService: { getStreams: vi.fn().mockResolvedValue([]) },
       latamTvRequest,
+      latamTvProxyRequest,
     });
     apps.push(app);
 
@@ -154,17 +170,27 @@ describe("HTTP addon interface", () => {
     });
 
     const stream = await app.inject({ method: "GET", url: "/stream/tv/latam-tv:deportivo.json" });
-    expect(stream.json().streams).toEqual([
+    const streams = stream.json().streams;
+    expect(streams).toEqual([
       expect.objectContaining({
         type: "hls",
-        url: "https://player.example/playlist.php?id=deportivo",
-        behaviorHints: {
-          proxyHeaders: {
-            request: expect.objectContaining({ Referer: expect.stringContaining("player.example") }),
-          },
-        },
+        url: expect.stringMatching(/\/latam-tv\/proxy\/playlist\/[a-f0-9-]+\.m3u8$/),
       }),
     ]);
+    const proxiedPlaylist = await app.inject({
+      method: "GET",
+      url: new URL(streams[0].url).pathname,
+    });
+    expect(proxiedPlaylist.statusCode).toBe(200);
+    const resourceUrl = proxiedPlaylist.body.split("\n").find((line) => line.startsWith("http"));
+    expect(resourceUrl).toMatch(/\/latam-tv\/proxy\/resource\/[a-f0-9-]+\.ts$/);
+    const proxiedResource = await app.inject({
+      method: "GET",
+      url: new URL(resourceUrl!).pathname,
+    });
+    expect(proxiedResource.statusCode).toBe(200);
+    expect(proxiedResource.headers["content-type"]).toContain("video/mp2t");
+    expect(proxiedResource.rawPayload).toEqual(Buffer.from([0x47, 0x40, 0x00, 0x10]));
 
     const poster = await app.inject({ method: "GET", url: "/latam-tv/posters/espnpremium.png" });
     expect(poster.statusCode).toBe(200);

@@ -30,6 +30,7 @@ La versión pública actual se despliega automáticamente desde la rama `main` e
 - Deduplicación por URL final, cachés TTL, timeouts y aislamiento de errores por proveedor/resolver.
 - Tres catálogos Hentaila: populares, al aire y sin censura.
 - Catálogo `LATAM TV • En vivo` con 77 canales, posters propios y filtros de género `Deportes` y `Regionales`.
+- Proxy HLS temporal para TV en producción: oculta las firmas, conserva la IP que las generó y retransmite playlists y segmentos sin almacenarlos.
 
 AnimeAV1 y Hentaila comparten un cliente para los datos públicos SvelteKit. JKAnime usa su búsqueda y páginas públicas. Ninguno de los tres publica actualmente IMDb/TMDB/Kitsu/MAL/AniList en sus fichas, por lo que los IDs se convierten primero en metadatos y alias; la similitud textual se usa al final, no como identidad primaria.
 
@@ -168,7 +169,7 @@ Nuvio / Stremio
 - `src/services/`: catálogos, fichas, matching y búsqueda.
 - `scripts/validate-live.ts`: validación real de IDs, temporadas y streams.
 
-AMOKIN no almacena ni retransmite vídeo. Resuelve la URL al solicitar `/stream` y el reproductor accede al host final con los headers declarados.
+AMOKIN no almacena vídeo. Para anime resuelve la URL y el reproductor accede al host final con los headers declarados. En LATAM TV, las firmas están ligadas a la IP que las genera, por lo que AMOKIN retransmite temporalmente el playlist y sus segmentos HLS para que la reproducción funcione fuera del servidor local.
 
 ## Verificación
 

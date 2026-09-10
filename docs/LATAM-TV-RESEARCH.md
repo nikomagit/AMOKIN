@@ -1,6 +1,6 @@
 # LATAM TV: investigación e integración
 
-Fecha de comprobación: 2026-09-10. La integración se validó primero como addon local aislado y después se incorporó al manifiesto y a las rutas principales de AMOKIN 2.3.0.
+Fecha de comprobación: 2026-09-10. La integración se validó primero como addon local aislado y después se incorporó al manifiesto y a las rutas principales de AMOKIN 2.3.1.
 
 ## Flujo observado
 
@@ -46,6 +46,8 @@ por AMOKIN en `/latam-tv/posters/:slug.png`.
 2. `LATAM_TV_CATALOG_URL` y `LATAM_TV_PLAYER_HOST_SUFFIXES` permanecen configurables.
 3. Las URLs HLS siguen resolviéndose al seleccionar el canal y nunca se hardcodean.
 4. El addon local aislado se conserva como banco de pruebas en el puerto 7101.
+5. En producción, AMOKIN retransmite temporalmente el playlist y sus segmentos;
+   esto mantiene la misma IP de salida que generó la firma y evita respuestas 403.
 
 ## Pruebas
 

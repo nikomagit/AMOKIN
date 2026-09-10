@@ -2,12 +2,14 @@ import cors from "@fastify/cors";
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { Readable } from "node:stream";
 import type { AppConfig } from "./config.js";
 import {
   LATAM_TV_CATALOG_ID,
   LatamTvClient,
 } from "./experimental/latam-tv/client.js";
 import { readLatamTvPoster } from "./experimental/latam-tv/poster.js";
+import { LatamTvProxy, type LatamTvProxyFetch } from "./experimental/latam-tv/proxy.js";
 import {
   filterLatamTvChannels,
   latamTvFilters,
@@ -38,6 +40,7 @@ export interface AppDependencies {
   metaService?: MetaService;
   externalStreamRequest?: FetchText;
   latamTvRequest?: FetchText;
+  latamTvProxyRequest?: LatamTvProxyFetch;
 }
 
 interface StreamParams {
@@ -119,6 +122,10 @@ export async function buildApp(
     maxStreams: config.maxStreams,
     catalogCacheTtlMs: config.catalogCacheTtlMs,
   }, dependencies.latamTvRequest);
+  const latamTvProxy = new LatamTvProxy({
+    trustedHostSuffixes: config.latamTvPlayerHostSuffixes,
+    timeoutMs: config.requestTimeoutMs,
+  }, dependencies.latamTvProxyRequest);
 
   app.get("/", async (_request, reply) => {
     void reply.header("cache-control", "public, max-age=300");
@@ -204,13 +211,13 @@ export async function buildApp(
     void reply.header("cache-control", "public, max-age=60, stale-if-error=300");
     try {
       if (request.params.type === "tv" && request.params.id.startsWith("latam-tv:")) {
+        const origin = requestOrigin(request);
         return {
           streams: (await latamTv.resolveChannel(request.params.id)).map((stream) => ({
             name: stream.name,
             title: stream.title,
             type: stream.type,
-            url: stream.url,
-            behaviorHints: { proxyHeaders: { request: stream.headers } },
+            url: latamTvProxy.registerPlaylist(stream.url, stream.headers, origin),
           })),
         };
       }
@@ -236,6 +243,54 @@ export async function buildApp(
     void reply.header("cache-control", "public, max-age=604800, immutable");
     return reply.type("image/png").send(poster);
   });
+
+  app.get<{ Params: { token: string } }>(
+    "/latam-tv/proxy/playlist/:token",
+    async (request, reply) => {
+      void reply.header("cache-control", "no-store");
+      try {
+        const playlist = await latamTvProxy.getPlaylist(request.params.token, requestOrigin(request));
+        if (!playlist) return reply.status(404).send({ error: "Playlist expired" });
+        return reply.type(playlist.contentType).send(playlist.body);
+      } catch (error) {
+        request.log.warn({ error }, "LATAM TV playlist proxy failed");
+        return reply.status(502).send({ error: "Playlist upstream failed" });
+      }
+    },
+  );
+
+  app.get<{ Params: { token: string } }>(
+    "/latam-tv/proxy/resource/:token",
+    async (request, reply) => {
+      void reply.header("cache-control", "no-store");
+      try {
+        const upstream = await latamTvProxy.getResource(request.params.token, request.headers.range);
+        if (!upstream) return reply.status(404).send({ error: "Resource expired" });
+        void reply.status(upstream.status);
+        for (const header of ["accept-ranges", "content-length", "content-range", "content-type"] as const) {
+          const value = upstream.headers.get(header);
+          if (value) void reply.header(header, value);
+        }
+        if (!upstream.body) return reply.send();
+        const reader = upstream.body.getReader();
+        const body = Readable.from((async function* () {
+          try {
+            while (true) {
+              const chunk = await reader.read();
+              if (chunk.done) break;
+              yield Buffer.from(chunk.value);
+            }
+          } finally {
+            reader.releaseLock();
+          }
+        })());
+        return reply.send(body);
+      } catch (error) {
+        request.log.warn({ error }, "LATAM TV resource proxy failed");
+        return reply.status(502).send({ error: "Resource upstream failed" });
+      }
+    },
+  );
 
   app.setNotFoundHandler(async (_request, reply) => {
     return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Endpoint not found" } });
