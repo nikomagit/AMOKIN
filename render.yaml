@@ -23,6 +23,10 @@ services:
         value: https://animeapi.my.id
       - key: ANILIST_BASE_URL
         value: https://graphql.anilist.co
+      - key: LATAM_TV_CATALOG_URL
+        value: https://embed.saohgdassregions.com
+      - key: LATAM_TV_PLAYER_HOST_SUFFIXES
+        value: saohgdassregions.com,ksdjugfssddeports.com
       - key: METADATA_FALLBACK_BASE_URL
         value: https://94c8cb9f702d-tmdb-addon.baby-beamup.club
       - key: TMDB_LANGUAGE

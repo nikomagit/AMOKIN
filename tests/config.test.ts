@@ -10,6 +10,11 @@ describe("metadata configuration", () => {
     expect(config.anilistBaseUrl).toBe("https://graphql.anilist.co");
     expect(config).not.toHaveProperty("tmdbApiKey");
     expect(config.tmdbLanguage).toBe("es-ES");
+    expect(config.latamTvCatalogUrl).toBe("https://embed.saohgdassregions.com");
+    expect(config.latamTvPlayerHostSuffixes).toEqual([
+      "saohgdassregions.com",
+      "ksdjugfssddeports.com",
+    ]);
     expect(config.externalStreamAddons).toEqual([]);
   });
 

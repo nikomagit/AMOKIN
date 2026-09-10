@@ -68,6 +68,8 @@ https://addon.tu-dominio.example/manifest.json
 | `JKANIME_BASE_URL` | `https://jkanime.net` |
 | `ANIME_MAPPING_BASE_URL` | `https://animeapi.my.id` |
 | `ANILIST_BASE_URL` | `https://graphql.anilist.co` |
+| `LATAM_TV_CATALOG_URL` | `https://embed.saohgdassregions.com` |
+| `LATAM_TV_PLAYER_HOST_SUFFIXES` | `saohgdassregions.com,ksdjugfssddeports.com` |
 | `METADATA_BASE_URL` | `https://v3-cinemeta.strem.io` |
 | `METADATA_FALLBACK_BASE_URL` | `https://94c8cb9f702d-tmdb-addon.baby-beamup.club` |
 | `CATALOG_CACHE_TTL_MS` | `900000` |
@@ -84,6 +86,8 @@ GET /manifest.json
 GET /catalog/series/hentaila-popular.json
 GET /catalog/series/hentaila-airing.json
 GET /catalog/series/hentaila-uncensored.json
+GET /catalog/tv/latam-tv/genre=Deportes.json
+GET /catalog/tv/latam-tv/genre=Regionales.json
 ```
 
 Después abre una ficha, un episodio y una respuesta `/stream/...`. Confirma que las URLs son HTTPS y que no existe `infoHash`.

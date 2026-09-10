@@ -1,6 +1,6 @@
 # AMOKIN para Nuvio/Stremio
 
-AMOKIN resuelve reproducción HTTP/HTTPS directa desde [AnimeAV1](https://animeav1.com/), [Hentaila](https://hentaila.com/) y [JKAnime](https://jkanime.net/), y también combina respuestas de addons externos configurables. Los catálogos y metadatos de esos addons externos no se importan.
+AMOKIN resuelve reproducción HTTP/HTTPS directa desde [AnimeAV1](https://animeav1.com/), [Hentaila](https://hentaila.com/) y [JKAnime](https://jkanime.net/), incorpora canales LATAM en vivo y también combina respuestas de addons externos configurables. Los catálogos y metadatos de esos addons externos no se importan.
 
 Latinobrid se integra como un agregador externo de resultados en español latino, con un funcionamiento comparable a Comet o Torrentio y respaldado por las cuentas PM/TB configuradas; no se considera un proveedor HTTP propio de AMOKIN. Al cliente solo se reenvían entradas con una URL HTTP/HTTPS reproducible. Se filtran torrents sin resolver, magnet links, `infoHash`, trackers y enlaces promocionales; el manifest declara `p2p: false`.
 
@@ -29,6 +29,7 @@ La versión pública actual se despliega automáticamente desde la rama `main` e
 - Orden de streams: Latinobrid PM/TB, Nube+, contenido propio de AMOKIN y, al final, NoTorrent.
 - Deduplicación por URL final, cachés TTL, timeouts y aislamiento de errores por proveedor/resolver.
 - Tres catálogos Hentaila: populares, al aire y sin censura.
+- Catálogo `LATAM TV • En vivo` con 77 canales, posters propios y filtros de género `Deportes` y `Regionales`.
 
 AnimeAV1 y Hentaila comparten un cliente para los datos públicos SvelteKit. JKAnime usa su búsqueda y páginas públicas. Ninguno de los tres publica actualmente IMDb/TMDB/Kitsu/MAL/AniList en sus fichas, por lo que los IDs se convierten primero en metadatos y alias; la similitud textual se usa al final, no como identidad primaria.
 
@@ -69,6 +70,11 @@ GET /health
 GET /manifest.json
 GET /catalog/series/{catalogId}.json
 GET /catalog/series/{catalogId}/skip=20.json
+GET /catalog/tv/latam-tv.json
+GET /catalog/tv/latam-tv/genre=Deportes.json
+GET /catalog/tv/latam-tv/genre=Regionales.json
+GET /meta/tv/latam-tv:{slug}.json
+GET /stream/tv/latam-tv:{slug}.json
 GET /meta/{type}/amokin:{provider}:{slug}.json
 GET /stream/{type}/{id}.json
 ```
@@ -78,6 +84,7 @@ Catálogos:
 - `hentaila-popular`
 - `hentaila-airing`
 - `hentaila-uncensored`
+- `latam-tv` (géneros: `Deportes`, `Regionales`)
 
 ## Ejecución local
 
@@ -114,6 +121,8 @@ La configuración predeterminada funciona con IDs nativos y las bases públicas 
 | `LATINOBRID_TB_MANIFEST_URL` | vacío | Manifest privado de Latinobrid TB; solo se consulta su recurso `stream`. |
 | `NUBE_PLUS_MANIFEST_URL` | vacío | Manifest privado de Nube+; solo se consulta su recurso `stream`. |
 | `NOTORRENT_MANIFEST_URL` | vacío | Manifest privado de NoTorrent; conserva su token en las consultas de streams. |
+| `LATAM_TV_CATALOG_URL` | `https://embed.saohgdassregions.com` | Catálogo autorizado de TV en vivo. |
+| `LATAM_TV_PLAYER_HOST_SUFFIXES` | dominios regionales/deportivos | Hosts de reproductor permitidos, separados por comas. |
 | `REQUEST_TIMEOUT_MS` | `10000` | Timeout de proveedores/hosts. |
 | `METADATA_TIMEOUT_MS` | `6000` | Timeout de metadatos/mapas. |
 | `MAX_STREAMS` | `8` | Máximo de streams propios por resolución; los externos válidos se agregan después. |
@@ -139,9 +148,11 @@ Consulta [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). GitHub Pages no sirve porque 
 ```text
 Nuvio / Stremio
   ├─ /catalog → Hentaila → metas con ID amokin
+  ├─ /catalog/tv → LATAM TV → géneros + posters con ID latam-tv
   ├─ /meta    → ID amokin → ficha y episodios
   └─ /stream
        ├─ ID amokin → proveedor conocido
+       ├─ ID latam-tv → resolución HLS tardía + headers del reproductor
        └─ ID externo
             ├─ metadata + mapa de IDs + aliases AniList
             │    → AnimeAV1 / Hentaila / JKAnime

@@ -28,6 +28,8 @@ export interface AppConfig {
   cacheMaxEntries: number;
   userAgent: string;
   playbackUserAgent: string;
+  latamTvCatalogUrl: string;
+  latamTvPlayerHostSuffixes: string[];
   externalStreamAddons: ExternalStreamAddonConfig[];
 }
 
@@ -104,6 +106,17 @@ function optionalManifestUrl(env: NodeJS.ProcessEnv, name: string): string | und
   }
   value.hash = "";
   return value.toString();
+}
+
+function hostSuffixes(env: NodeJS.ProcessEnv, name: string, fallback: string): string[] {
+  const values = (env[name]?.trim() || fallback)
+    .split(",")
+    .map((value) => value.trim().toLocaleLowerCase("en"))
+    .filter(Boolean);
+  if (values.length === 0 || values.some((value) => !/^[a-z0-9.-]+$/.test(value))) {
+    throw new Error(`${name} must be a comma-separated list of host suffixes`);
+  }
+  return [...new Set(values)];
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -219,6 +232,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       env.PLAYBACK_USER_AGENT?.trim() ||
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
         "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+    latamTvCatalogUrl: baseUrl(
+      env,
+      "LATAM_TV_CATALOG_URL",
+      "https://embed.saohgdassregions.com",
+    ),
+    latamTvPlayerHostSuffixes: hostSuffixes(
+      env,
+      "LATAM_TV_PLAYER_HOST_SUFFIXES",
+      "saohgdassregions.com,ksdjugfssddeports.com",
+    ),
     externalStreamAddons,
   };
 }

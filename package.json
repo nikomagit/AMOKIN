@@ -1,7 +1,7 @@
 {
   "name": "amokin",
-  "version": "2.2.6",
-  "description": "AMOKIN: catálogos y streams HTTP directos de anime para Nuvio/Stremio.",
+  "version": "2.3.0",
+  "description": "AMOKIN: anime y TV en vivo mediante streams HTTP directos para Nuvio/Stremio.",
   "type": "module",
   "private": true,
   "engines": {
@@ -14,7 +14,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "validate:live": "tsx scripts/validate-live.ts"
+    "validate:live": "tsx scripts/validate-live.ts",
+    "dev:latam-tv": "tsx scripts/run-latam-tv-local.ts",
+    "validate:latam-tv": "tsx scripts/validate-latam-tv.ts"
   },
   "dependencies": {
     "@fastify/cors": "11.3.0",

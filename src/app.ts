@@ -1,8 +1,19 @@
 import cors from "@fastify/cors";
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { AppConfig } from "./config.js";
+import {
+  LATAM_TV_CATALOG_ID,
+  LatamTvClient,
+} from "./experimental/latam-tv/client.js";
+import { readLatamTvPoster } from "./experimental/latam-tv/poster.js";
+import {
+  filterLatamTvChannels,
+  latamTvFilters,
+  latamTvMeta,
+  requestOrigin,
+} from "./experimental/latam-tv/presentation.js";
 import type { FetchText } from "./lib/http.js";
 import {
   AppError,
@@ -26,6 +37,7 @@ export interface AppDependencies {
   catalogService?: CatalogService;
   metaService?: MetaService;
   externalStreamRequest?: FetchText;
+  latamTvRequest?: FetchText;
 }
 
 interface StreamParams {
@@ -39,6 +51,7 @@ interface CatalogParams extends StreamParams {
 
 interface CatalogQuery {
   skip?: string;
+  genre?: string;
 }
 
 function catalogSkip(query: string | undefined, extra: string | undefined): number {
@@ -97,6 +110,15 @@ export async function buildApp(
   );
   const catalogService = dependencies.catalogService ?? new ProviderCatalogService(animeProviders);
   const metaService = dependencies.metaService ?? new ProviderMetaService(animeProviders);
+  const latamTv = new LatamTvClient({
+    catalogUrl: config.latamTvCatalogUrl,
+    trustedPlayerHostSuffixes: config.latamTvPlayerHostSuffixes,
+    timeoutMs: config.requestTimeoutMs,
+    maxResponseBytes: config.maxResponseBytes,
+    userAgent: config.playbackUserAgent,
+    maxStreams: config.maxStreams,
+    catalogCacheTtlMs: config.catalogCacheTtlMs,
+  }, dependencies.latamTvRequest);
 
   app.get("/", async (_request, reply) => {
     void reply.header("cache-control", "public, max-age=300");
@@ -107,7 +129,7 @@ export async function buildApp(
       manifest: "/manifest.json",
       logo: "/logo.jpg",
       health: "/health",
-      sources: ["AnimeAV1", "Hentaila", "JKAnime", ...config.externalStreamAddons.map((source) => source.name)],
+      sources: ["AnimeAV1", "Hentaila", "JKAnime", "LATAM TV", ...config.externalStreamAddons.map((source) => source.name)],
       streaming: "AMOKIN direct sources + configured stream addons",
       p2p: false,
     };
@@ -130,17 +152,23 @@ export async function buildApp(
     return {
       status: "ok",
       version: manifest.version,
-      sources: ["AnimeAV1", "Hentaila", "JKAnime", ...config.externalStreamAddons.map((source) => source.name)],
+      sources: ["AnimeAV1", "Hentaila", "JKAnime", "LATAM TV", ...config.externalStreamAddons.map((source) => source.name)],
       p2p: false,
     };
   });
 
   const serveCatalog = async (
-    request: { params: CatalogParams; query: CatalogQuery; log: FastifyInstance["log"] },
-    reply: { header(name: string, value: string): unknown },
+    request: FastifyRequest<{ Params: CatalogParams; Querystring: CatalogQuery }>,
+    reply: FastifyReply,
   ) => {
     void reply.header("cache-control", "public, max-age=600, stale-if-error=3600");
     try {
+      if (request.params.type === "tv" && request.params.id === LATAM_TV_CATALOG_ID) {
+        const filters = latamTvFilters(request.query.genre, request.params.extra);
+        const channels = filterLatamTvChannels(await latamTv.getChannels(), filters);
+        const origin = requestOrigin(request);
+        return { metas: channels.map((channel) => latamTvMeta(channel, origin)) };
+      }
       const skip = catalogSkip(request.query.skip, request.params.extra);
       return { metas: await catalogService.getCatalog(request.params.type, request.params.id, skip) };
     } catch (error) {
@@ -161,6 +189,10 @@ export async function buildApp(
   app.get<{ Params: StreamParams }>("/meta/:type/:id.json", async (request, reply) => {
     void reply.header("cache-control", "public, max-age=3600, stale-if-error=86400");
     try {
+      if (request.params.type === "tv" && request.params.id.startsWith("latam-tv:")) {
+        const channel = await latamTv.getChannel(request.params.id);
+        return { meta: channel ? latamTvMeta(channel, requestOrigin(request)) : null };
+      }
       return { meta: await metaService.getMeta(request.params.type, request.params.id) };
     } catch (error) {
       request.log.warn({ error, mediaId: request.params.id }, "Metadata request failed");
@@ -171,6 +203,17 @@ export async function buildApp(
   app.get<{ Params: StreamParams }>("/stream/:type/:id.json", async (request, reply) => {
     void reply.header("cache-control", "public, max-age=60, stale-if-error=300");
     try {
+      if (request.params.type === "tv" && request.params.id.startsWith("latam-tv:")) {
+        return {
+          streams: (await latamTv.resolveChannel(request.params.id)).map((stream) => ({
+            name: stream.name,
+            title: stream.title,
+            type: stream.type,
+            url: stream.url,
+            behaviorHints: { proxyHeaders: { request: stream.headers } },
+          })),
+        };
+      }
       return { streams: await searchService.getStreams(request.params.type, request.params.id) };
     } catch (error) {
       if (
@@ -185,6 +228,13 @@ export async function buildApp(
       }
       throw error;
     }
+  });
+
+  app.get<{ Params: { slug: string } }>("/latam-tv/posters/:slug.png", async (request, reply) => {
+    const poster = await readLatamTvPoster(request.params.slug);
+    if (!poster) return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Poster not found" } });
+    void reply.header("cache-control", "public, max-age=604800, immutable");
+    return reply.type("image/png").send(poster);
   });
 
   app.setNotFoundHandler(async (_request, reply) => {

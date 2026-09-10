@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "../src/app.js";
 import { UpstreamTimeoutError } from "../src/errors.js";
+import type { FetchText } from "../src/lib/http.js";
 import type { CatalogService, MetaService, StreamSearchService } from "../src/types.js";
 import { testConfig } from "./helpers.js";
 
@@ -21,7 +22,7 @@ describe("HTTP addon interface", () => {
     const body = response.json();
     expect(body).toMatchObject({
       id: "org.nuvio.amokin",
-      version: "2.2.6",
+      version: "2.3.0",
       name: "AMOKIN",
       description: "Contenido en Latino y sin torrents para Nuvio/Stremio, creado por y para NIKOMA.",
       logo: "https://amokin.onrender.com/logo.jpg",
@@ -29,24 +30,30 @@ describe("HTTP addon interface", () => {
     });
     expect(body.resources).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: "catalog" }),
-      expect.objectContaining({ name: "meta", idPrefixes: ["amokin:"] }),
+      expect.objectContaining({ name: "meta", idPrefixes: ["amokin:", "latam-tv:"] }),
       expect.objectContaining({
         name: "stream",
-        idPrefixes: ["tt", "tmdb:", "tvdb:", "kitsu:", "anilist:", "mal:", "anidb:", "amokin:"],
+        idPrefixes: ["tt", "tmdb:", "tvdb:", "kitsu:", "anilist:", "mal:", "anidb:", "amokin:", "latam-tv:"],
       }),
     ]));
     expect(body.catalogs.map((catalog: { id: string }) => catalog.id)).toEqual([
       "hentaila-popular",
       "hentaila-airing",
       "hentaila-uncensored",
+      "latam-tv",
     ]);
+    expect(body.catalogs.at(-1)).toMatchObject({
+      type: "tv",
+      id: "latam-tv",
+      extra: [{ name: "genre", options: ["Deportes", "Regionales"] }],
+    });
 
     const health = await app.inject({ method: "GET", url: "/health" });
     expect(health.statusCode).toBe(200);
     expect(health.json()).toMatchObject({
-      version: "2.2.6",
+      version: "2.3.0",
       p2p: false,
-      sources: ["AnimeAV1", "Hentaila", "JKAnime"],
+      sources: ["AnimeAV1", "Hentaila", "JKAnime", "LATAM TV"],
     });
   });
 
@@ -93,6 +100,76 @@ describe("HTTP addon interface", () => {
     const response = await app.inject({ method: "GET", url: "/stream/movie/tt1234567.json" });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ streams: [{ url: "https://cdn.example/video.mp4" }] });
+  });
+
+  it("integrates the LATAM TV catalog, genre filter, metadata, poster and stream routes", async () => {
+    const latamTvRequest: FetchText = vi.fn(async (url) => {
+      const value = new URL(url);
+      if (value.href === "https://embed.example/") {
+        return `
+          <div class="category active" id="deportes">
+            <div class="channel-name">Canal Deportivo</div>
+            <a href="https://embed.example/deportivo.php">LINK</a>
+          </div>
+          <div class="category" id="regionales">
+            <div class="channel-name">Canal Regional</div>
+            <a href="https://embed.example/regional.php">LINK</a>
+          </div>`;
+      }
+      if (value.href === "https://embed.example/deportivo.php") {
+        return `<h2>JW PLAYER</h2><input value="&lt;iframe src=&quot;https://embed.example/embed2/deportivo.php&quot;&gt;&lt;/iframe&gt;">`;
+      }
+      if (value.href === "https://embed.example/embed2/deportivo.php") {
+        return `<iframe src="https://player.example/live.php?channel=deportivo"></iframe>`;
+      }
+      if (value.hostname === "player.example") {
+        return `file: "https:\/\/player.example\/playlist.php?id=deportivo";`;
+      }
+      throw new Error(`Unexpected LATAM TV URL: ${value.href}`);
+    });
+    const app = await buildApp(testConfig(), {
+      searchService: { getStreams: vi.fn().mockResolvedValue([]) },
+      latamTvRequest,
+    });
+    apps.push(app);
+
+    const catalog = await app.inject({
+      method: "GET",
+      url: "/catalog/tv/latam-tv/genre=Deportes.json",
+    });
+    expect(catalog.statusCode).toBe(200);
+    expect(catalog.json().metas).toEqual([
+      expect.objectContaining({
+        id: "latam-tv:deportivo",
+        name: "Canal Deportivo",
+        genres: ["Deportes"],
+        poster: expect.stringMatching(/\/latam-tv\/posters\/deportivo\.png$/),
+      }),
+    ]);
+
+    const meta = await app.inject({ method: "GET", url: "/meta/tv/latam-tv:deportivo.json" });
+    expect(meta.json().meta).toMatchObject({
+      id: "latam-tv:deportivo",
+      genres: ["Deportes"],
+    });
+
+    const stream = await app.inject({ method: "GET", url: "/stream/tv/latam-tv:deportivo.json" });
+    expect(stream.json().streams).toEqual([
+      expect.objectContaining({
+        type: "hls",
+        url: "https://player.example/playlist.php?id=deportivo",
+        behaviorHints: {
+          proxyHeaders: {
+            request: expect.objectContaining({ Referer: expect.stringContaining("player.example") }),
+          },
+        },
+      }),
+    ]);
+
+    const poster = await app.inject({ method: "GET", url: "/latam-tv/posters/espnpremium.png" });
+    expect(poster.statusCode).toBe(200);
+    expect(poster.headers["content-type"]).toContain("image/png");
+    expect(poster.rawPayload.byteLength).toBeGreaterThan(10_000);
   });
 
   it("maps upstream timeouts to a diagnostic response", async () => {
