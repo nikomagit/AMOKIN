@@ -17,12 +17,6 @@ const addons = [
     position: "before-local" as const,
   },
   {
-    name: "Cometa",
-    manifestUrl: "https://cometa.example/private/manifest.json",
-    idFormat: "imdb" as const,
-    position: "before-local" as const,
-  },
-  {
     name: "Nube+",
     manifestUrl: "https://nube-plus.example/private/manifest.json",
     idFormat: "imdb" as const,
@@ -37,14 +31,13 @@ const addons = [
 ];
 
 describe("external stream aggregation", () => {
-  it("places Cometa after Latinobrid and before Nube+ and AMOKIN", async () => {
+  it("places Latinobrid and Nube+ before AMOKIN, then NoTorrent", async () => {
     const local: StreamSearchService = {
       getStreams: vi.fn().mockResolvedValue([{ name: "AMOKIN", url: "https://video.example/local.m3u8" }]),
     } as StreamSearchService;
     const request = vi.fn()
       .mockResolvedValueOnce('{"streams":[{"name":"Latinobrid PM","url":"https://video.example/pm.m3u8"}]}')
       .mockResolvedValueOnce('{"streams":[{"name":"Latinobrid TB","url":"https://video.example/tb.m3u8"}]}')
-      .mockResolvedValueOnce('{"streams":[{"name":"Cometa","url":"https://video.example/cometa.m3u8"}]}')
       .mockResolvedValueOnce('{"streams":[{"name":"Nube+","url":"https://video.example/nube-plus.m3u8"}]}')
       .mockResolvedValueOnce(JSON.stringify({
         streams: [
@@ -63,12 +56,11 @@ describe("external stream aggregation", () => {
     await expect(service.getStreams("movie", "tt0133093")).resolves.toEqual([
       expect.objectContaining({ name: "Latinobrid PM", url: "https://video.example/pm.m3u8" }),
       expect.objectContaining({ name: "Latinobrid TB", url: "https://video.example/tb.m3u8" }),
-      expect.objectContaining({ name: "Cometa", url: "https://video.example/cometa.m3u8" }),
       expect.objectContaining({ name: "Nube+", url: "https://video.example/nube-plus.m3u8" }),
       expect.objectContaining({ name: "AMOKIN", url: "https://video.example/local.m3u8" }),
       expect.objectContaining({ name: "NoTorrent", url: "https://video.example/notorrent.m3u8" }),
     ]);
-    expect(request).toHaveBeenCalledTimes(5);
+    expect(request).toHaveBeenCalledTimes(4);
   });
 
   it("preserves manifest query credentials and translates AMOKIN TMDB IDs for NoTorrent", async () => {
@@ -94,7 +86,6 @@ describe("external stream aggregation", () => {
     const request = vi.fn()
       .mockRejectedValueOnce(new Error("first addon unavailable"))
       .mockResolvedValueOnce('{"streams":[{"name":"Available","url":"https://video.example/ok.mp4"}]}')
-      .mockResolvedValueOnce('{"streams":[]}')
       .mockResolvedValueOnce('{"streams":[]}')
       .mockResolvedValueOnce('{"streams":[]}');
     const service = new ExternalStreamAggregator(

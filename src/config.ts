@@ -129,7 +129,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const externalStreamAddons: ExternalStreamAddonConfig[] = [];
   const latinobridPmManifestUrl = optionalManifestUrl(env, "LATINOBRID_PM_MANIFEST_URL");
   const latinobridTbManifestUrl = optionalManifestUrl(env, "LATINOBRID_TB_MANIFEST_URL");
-  const cometaManifestUrl = optionalManifestUrl(env, "COMETA_MANIFEST_URL");
   const nubePlusManifestUrl = optionalManifestUrl(env, "NUBE_PLUS_MANIFEST_URL");
   const noTorrentManifestUrl = optionalManifestUrl(env, "NOTORRENT_MANIFEST_URL");
   if (latinobridPmManifestUrl) {
@@ -144,14 +143,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     externalStreamAddons.push({
       name: "Latinobrid TB",
       manifestUrl: latinobridTbManifestUrl,
-      idFormat: "imdb",
-      position: "before-local",
-    });
-  }
-  if (cometaManifestUrl) {
-    externalStreamAddons.push({
-      name: "Cometa",
-      manifestUrl: cometaManifestUrl,
       idFormat: "imdb",
       position: "before-local",
     });
