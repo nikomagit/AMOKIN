@@ -11,9 +11,6 @@ function remoteMediaId(source: ExternalStreamAddonConfig, rawId: string): string
     const tmdb = /^tmdb:(\d+(?::\d+:\d+)?)$/.exec(rawId);
     if (tmdb?.[1]) return `tmdb_${tmdb[1]}`;
   }
-  if (source.idFormat === "imdb-or-kitsu" && /^kitsu:\d+(?::\d+){0,2}$/.test(rawId)) {
-    return rawId;
-  }
   return null;
 }
 
@@ -66,7 +63,7 @@ export class ExternalStreamAggregator implements StreamSearchService {
       const externalId = remoteMediaId(source, id);
       if (!externalId || !(type === "movie" || type === "series")) continue;
       const request = this.request(streamEndpoint(source.manifestUrl, type, externalId), {
-        timeoutMs: source.timeoutMs ?? this.config.requestTimeoutMs,
+        timeoutMs: this.config.requestTimeoutMs,
         maxBytes: this.config.maxResponseBytes,
         upstream: source.name,
         headers: { "User-Agent": this.config.userAgent, Accept: "application/json" },

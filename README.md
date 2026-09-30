@@ -25,8 +25,8 @@ La versión pública actual se despliega automáticamente desde la rama `main` e
 - Títulos original, inglés, japonés, romaji y sinónimos mediante AniList.
 - Matching por identidad externa cuando el proveedor la expone; alias, año, tipo, temporada y episodio como fallback conservador.
 - Resolución de temporadas que el proveedor publica como fichas independientes.
-- Agregación opcional de los streams de Latinobrid PM/TB, Nube Debrid, Nube+ y NoTorrent, sin importar sus catálogos.
-- Orden de streams: Latinobrid PM/TB, Nube Debrid, Nube+, contenido propio de AMOKIN y, al final, NoTorrent.
+- Agregación opcional de los streams de Latinobrid PM/TB, Nube+ y NoTorrent, sin importar sus catálogos.
+- Orden de streams: Latinobrid PM/TB, Nube+, contenido propio de AMOKIN y, al final, NoTorrent.
 - Deduplicación por URL final, cachés TTL, timeouts y aislamiento de errores por proveedor/resolver.
 - Tres catálogos Hentaila: populares, al aire y sin censura.
 - Catálogo `LATAM TV • En vivo` con 77 canales, posters propios y filtros de género `Deportes` y `Regionales`.
@@ -120,7 +120,6 @@ La configuración predeterminada funciona con IDs nativos y las bases públicas 
 | `TMDB_LANGUAGE` | `es-ES` | Idioma solicitado a TMDB. |
 | `LATINOBRID_PM_MANIFEST_URL` | vacío | Manifest privado de Latinobrid PM; solo se consulta su recurso `stream`. |
 | `LATINOBRID_TB_MANIFEST_URL` | vacío | Manifest privado de Latinobrid TB; solo se consulta su recurso `stream`. |
-| `NUBE_DEBRID_MANIFEST_URL` | vacío | Manifest privado de Nube Debrid; solo se consulta su recurso `stream` y se esperan hasta 18 segundos. |
 | `NUBE_PLUS_MANIFEST_URL` | vacío | Manifest privado de Nube+; solo se consulta su recurso `stream`. |
 | `NOTORRENT_MANIFEST_URL` | vacío | Manifest privado de NoTorrent; conserva su token en las consultas de streams. |
 | `LATAM_TV_CATALOG_URL` | `https://embed.saohgdassregions.com` | Catálogo autorizado de TV en vivo. |

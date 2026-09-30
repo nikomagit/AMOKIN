@@ -28,7 +28,6 @@ describe("metadata configuration", () => {
     const config = loadConfig({
       LATINOBRID_PM_MANIFEST_URL: "https://premium.example/private/manifest.json",
       LATINOBRID_TB_MANIFEST_URL: "https://torbox.example/private/manifest.json",
-      NUBE_DEBRID_MANIFEST_URL: "https://debrid.example/private/manifest.json",
       NUBE_PLUS_MANIFEST_URL: "https://plus.example/private/manifest.json",
       NOTORRENT_MANIFEST_URL: "https://direct.example/manifest.json?token=private",
     });
@@ -44,13 +43,6 @@ describe("metadata configuration", () => {
         manifestUrl: "https://torbox.example/private/manifest.json",
         idFormat: "imdb",
         position: "before-local",
-      },
-      {
-        name: "Nube Debrid",
-        manifestUrl: "https://debrid.example/private/manifest.json",
-        idFormat: "imdb-or-kitsu",
-        position: "before-local",
-        timeoutMs: 18_000,
       },
       {
         name: "Nube+",
