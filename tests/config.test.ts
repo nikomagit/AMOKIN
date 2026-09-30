@@ -27,9 +27,9 @@ describe("metadata configuration", () => {
   it("loads external stream manifests from private runtime settings", () => {
     const config = loadConfig({
       LATINOBRID_PM_MANIFEST_URL: "https://premium.example/private/manifest.json",
-      NUBE_PLUS_MANIFEST_URL: "https://plus.example/private/manifest.json",
-      // Kept here to ensure existing Render settings are ignored after retirement.
+      LATINOBRID_TB_MANIFEST_URL: "https://torbox.example/private/manifest.json",
       NUBE_DEBRID_MANIFEST_URL: "https://debrid.example/private/manifest.json",
+      NUBE_PLUS_MANIFEST_URL: "https://plus.example/private/manifest.json",
       NOTORRENT_MANIFEST_URL: "https://direct.example/manifest.json?token=private",
     });
     expect(config.externalStreamAddons).toEqual([
@@ -38,6 +38,19 @@ describe("metadata configuration", () => {
         manifestUrl: "https://premium.example/private/manifest.json",
         idFormat: "imdb",
         position: "before-local",
+      },
+      {
+        name: "Latinobrid TB",
+        manifestUrl: "https://torbox.example/private/manifest.json",
+        idFormat: "imdb",
+        position: "before-local",
+      },
+      {
+        name: "Nube Debrid",
+        manifestUrl: "https://debrid.example/private/manifest.json",
+        idFormat: "imdb-or-kitsu",
+        position: "before-local",
+        timeoutMs: 18_000,
       },
       {
         name: "Nube+",
