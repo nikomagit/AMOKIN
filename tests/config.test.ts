@@ -27,6 +27,8 @@ describe("metadata configuration", () => {
   it("loads external stream manifests from private runtime settings", () => {
     const config = loadConfig({
       LATINOBRID_PM_MANIFEST_URL: "https://premium.example/private/manifest.json",
+      LATINOBRID_TB_MANIFEST_URL: "https://torbox.example/private/manifest.json",
+      COMETA_MANIFEST_URL: "https://cometa.example/private/manifest.json",
       NUBE_PLUS_MANIFEST_URL: "https://plus.example/private/manifest.json",
       // Kept here to ensure existing Render settings are ignored after retirement.
       NUBE_DEBRID_MANIFEST_URL: "https://debrid.example/private/manifest.json",
@@ -36,6 +38,18 @@ describe("metadata configuration", () => {
       {
         name: "Latinobrid PM",
         manifestUrl: "https://premium.example/private/manifest.json",
+        idFormat: "imdb",
+        position: "before-local",
+      },
+      {
+        name: "Latinobrid TB",
+        manifestUrl: "https://torbox.example/private/manifest.json",
+        idFormat: "imdb",
+        position: "before-local",
+      },
+      {
+        name: "Cometa",
+        manifestUrl: "https://cometa.example/private/manifest.json",
         idFormat: "imdb",
         position: "before-local",
       },
