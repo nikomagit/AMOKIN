@@ -29,14 +29,14 @@ export function buildLocalLatamTvApp(
   const manifestCatalog = {
     type: "tv",
     id: LATAM_TV_CATALOG_ID,
-    name: "LATAM TV • En vivo",
+    name: "Deportes • En vivo",
     extra: [{ name: "genre", isRequired: false, options: [...LATAM_TV_GENRES] }],
   };
 
   app.get("/manifest.json", async () => ({
     id: "org.nuvio.amokin.latam-tv.local",
-    version: "0.2.0-local",
-    name: "AMOKIN LATAM TV (local)",
+    version: "0.3.0-local",
+    name: "AMOKIN Deportes (local)",
     description: "Prueba local aislada de canales TV en vivo.",
     types: ["tv"],
     catalogs: [manifestCatalog],

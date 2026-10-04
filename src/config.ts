@@ -28,8 +28,8 @@ export interface AppConfig {
   cacheMaxEntries: number;
   userAgent: string;
   playbackUserAgent: string;
-  latamTvCatalogUrl: string;
-  latamTvPlayerHostSuffixes: string[];
+  sportsTvBaseUrl: string;
+  sportsTvPlayerHostSuffixes: string[];
   externalStreamAddons: ExternalStreamAddonConfig[];
 }
 
@@ -232,15 +232,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       env.PLAYBACK_USER_AGENT?.trim() ||
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
         "(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
-    latamTvCatalogUrl: baseUrl(
+    sportsTvBaseUrl: baseUrl(
       env,
-      "LATAM_TV_CATALOG_URL",
-      "https://embed.saohgdassregions.com",
+      "SPORTS_TV_BASE_URL",
+      "https://futbollibrefullhd.org",
     ),
-    latamTvPlayerHostSuffixes: hostSuffixes(
+    sportsTvPlayerHostSuffixes: hostSuffixes(
       env,
-      "LATAM_TV_PLAYER_HOST_SUFFIXES",
-      "saohgdassregions.com,ksdjugfssddeports.com",
+      "SPORTS_TV_PLAYER_HOST_SUFFIXES",
+      "tvf90.com,ftlly.com",
     ),
     externalStreamAddons,
   };

@@ -30,8 +30,8 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     cacheMaxEntries: 50,
     userAgent: "Test/1.0",
     playbackUserAgent: "Mozilla/5.0 TestBrowser/1.0",
-    latamTvCatalogUrl: "https://embed.example",
-    latamTvPlayerHostSuffixes: ["embed.example", "player.example"],
+    sportsTvBaseUrl: "https://embed.example",
+    sportsTvPlayerHostSuffixes: ["embed.example", "player.example"],
     externalStreamAddons: [],
     ...overrides,
   };

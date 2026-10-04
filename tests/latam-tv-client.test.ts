@@ -3,142 +3,80 @@ import type { FetchText } from "../src/lib/http.js";
 import { LatamTvClient } from "../src/experimental/latam-tv/client.js";
 import { buildLocalLatamTvApp } from "../src/experimental/latam-tv/local-app.js";
 
-const catalogUrl = "https://embed.example/";
-const catalogHtml = `
-  <div class="category active" id="deportes">
-    <div class="card"><div class="channel-name">Canal Uno</div><a href="https://embed.example/canal-uno.php">LINK</a></div>
-    <div class="card"><div class="channel-name">Canal Uno alternativo</div><a href="https://embed.example/canal-uno.php">LINK</a></div>
-    <div class="card"><div class="channel-name">No permitido</div><a href="https://other.example/no.php">LINK</a></div>
-  </div>
-  <div class="category" id="regionales">
-    <div class="card"><div class="channel-name">Canal Dos</div><a href="https://embed.example/canal-dos.php">LINK</a></div>
-  </div>
-`;
+const options = {
+  catalogUrl: "https://source.example/",
+  trustedPlayerHostSuffixes: ["player.example", "cdn.example"],
+  timeoutMs: 1_000,
+  maxResponseBytes: 100_000,
+  userAgent: "AMOKIN test",
+};
 
 function fixtureRequest(): FetchText {
-  return vi.fn(async (url) => {
+  return vi.fn(async (url, requestOptions) => {
     const value = new URL(url);
-    if (value.href === catalogUrl) return catalogHtml;
-    if (value.href === "https://embed.example/canal-uno.php") {
-      return `
-        <h2>JW PLAYER</h2>
-        <input value="&lt;iframe src=&quot;https://embed.example/embed2/canal-uno.php&quot;&gt;&lt;/iframe&gt;">
-        <h2>CLAPPR</h2>
-        <input value="&lt;iframe src=&quot;https://embed.example/embed/canal-uno.php&quot;&gt;&lt;/iframe&gt;">
-      `;
+    if (value.hostname === "source.example") {
+      return '<iframe src="https://player.example/online/canal.php?stream=espn2"></iframe>';
     }
-    if (value.href === "https://embed.example/embed2/canal-uno.php") {
-      return `<iframe src="https://player.example/stream.php?canal=canal-uno&amp;target=2&amp;sig=fresh"></iframe>`;
+    if (value.pathname === "/online/canal.php") {
+      expect(requestOptions.headers?.Referer).toBe("https://source.example/en-vivo/espn-2");
+      return '<iframe src="/5.php?stream=espn2"></iframe>';
     }
-    if (value.href === "https://embed.example/embed/canal-uno.php") {
-      return `<iframe src="https://player.example/stream.php?canal=canal-uno&amp;target=3&amp;sig=fresh"></iframe>`;
+    if (value.pathname === "/5.php") {
+      expect(requestOptions.headers?.Referer).toBe("https://player.example/online/canal.php?stream=espn2");
+      return 'var playbackURL = "https://11.cdn.example/espn2/mono.m3u8?token=temporary";';
     }
-    if (value.hostname === "player.example") {
-      return value.searchParams.get("target") === "2"
-        ? `file: "https:\/\/player.example\/playlist.php?id=1_&sig=temporary";`
-        : `const playbackURL = "https:\/\/player.example\/playlist.php?id=1_&sig=temporary";`;
-    }
-    throw new Error(`Unexpected URL ${value}`);
+    throw new Error("Unexpected URL");
   });
 }
 
-function options() {
-  return {
-    catalogUrl,
-    trustedPlayerHostSuffixes: ["player.example"],
-    timeoutMs: 1_000,
-    maxResponseBytes: 100_000,
-    userAgent: "AMOKIN test",
-  };
-}
-
-describe("LATAM TV isolated client", () => {
-  it("creates one TV catalog item per channel without resolving it", async () => {
+describe("curated sports TV", () => {
+  it("contains exactly the five requested channels and needs no catalog scraping", async () => {
     const request = fixtureRequest();
-    const client = new LatamTvClient(options(), request);
-
-    await expect(client.getChannels()).resolves.toEqual([
-      {
-        id: "latam-tv:canal-uno",
-        type: "tv",
-        name: "Canal Uno alternativo",
-        genre: "Deportes",
-        sourceUrl: "https://embed.example/canal-uno.php",
-      },
-      {
-        id: "latam-tv:canal-dos",
-        type: "tv",
-        name: "Canal Dos",
-        genre: "Regionales",
-        sourceUrl: "https://embed.example/canal-dos.php",
-      },
+    const client = new LatamTvClient(options, request);
+    const channels = await client.getChannels();
+    expect(channels.map((channel) => channel.name)).toEqual(["DSport", "DSport+", "ESPN", "ESPN2", "ESPN3"]);
+    expect(channels.map((channel) => new URL(channel.sourceUrl).pathname)).toEqual([
+      "/en-vivo/directv-sports-online", "/en-vivo/directv-sports-plus-online",
+      "/en-vivo/espn-1", "/en-vivo/espn-2", "/en-vivo/espn-3",
     ]);
-    expect(request).toHaveBeenCalledTimes(1);
+    expect(channels.every((channel) => channel.genre === "Deportes")).toBe(true);
+    expect(request).not.toHaveBeenCalled();
+    expect(await client.getChannel("latam-tv:tnt")).toBeNull();
+    expect(await client.resolveChannel("latam-tv:espnar")).toEqual([]);
   });
 
-  it("resolves both player choices at selection time and deduplicates the same HLS URL", async () => {
-    const request = fixtureRequest();
-    const client = new LatamTvClient(options(), request);
-
-    const streams = await client.resolveChannel("latam-tv:canal-uno");
-    expect(streams).toEqual([
+  it("follows the announced relative iframe and extracts the signed HLS URL", async () => {
+    const client = new LatamTvClient(options, fixtureRequest());
+    expect(await client.resolveChannel("latam-tv:espn2")).toEqual([
       expect.objectContaining({
-        name: "LATAM TV • JW PLAYER",
+        url: "https://11.cdn.example/espn2/mono.m3u8?token=temporary",
         type: "hls",
-        url: "https://player.example/playlist.php?id=1_&sig=temporary",
         headers: expect.objectContaining({
           Origin: "https://player.example",
-          Referer: "https://player.example/stream.php?canal=canal-uno&target=2&sig=fresh",
-          "User-Agent": "AMOKIN test",
+          Referer: "https://player.example/5.php?stream=espn2",
         }),
       }),
     ]);
   });
 
-  it("exposes only the isolated TV manifest and endpoints", async () => {
-    const app = buildLocalLatamTvApp(options(), fixtureRequest());
+  it("does not follow advertising or untrusted iframes", async () => {
+    const request: FetchText = vi.fn(async () => '<iframe src="http://127.0.0.1/private"></iframe>');
+    const client = new LatamTvClient(options, request);
+    expect(await client.resolveChannel("latam-tv:espn2")).toEqual([]);
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the local catalog limited to Deportes and removes the old regional metadata", async () => {
+    const app = buildLocalLatamTvApp(options, fixtureRequest());
     try {
-      const manifest = await app.inject({ method: "GET", url: "/manifest.json" });
-      expect(manifest.json()).toMatchObject({
-        types: ["tv"],
-        catalogs: [{
-          type: "tv",
-          id: "latam-tv",
-          extra: [{ name: "genre", options: ["Deportes", "Regionales"] }],
-        }],
-        resources: expect.arrayContaining([
-          expect.objectContaining({ name: "meta", types: ["tv"], idPrefixes: ["latam-tv:"] }),
-          expect.objectContaining({ name: "stream", types: ["tv"] }),
-        ]),
+      const manifest = (await app.inject("/manifest.json")).json();
+      expect(manifest.catalogs[0].extra[0].options).toEqual(["Deportes"]);
+      expect((await app.inject("/catalog/tv/latam-tv.json")).json().metas).toHaveLength(5);
+      expect((await app.inject("/catalog/tv/latam-tv/genre=Regionales.json")).json().metas).toEqual([]);
+      expect((await app.inject("/meta/tv/latam-tv:tnt.json")).json().meta).toBeNull();
+      expect((await app.inject("/meta/tv/latam-tv:espn2.json")).json().meta).toMatchObject({
+        name: "ESPN2", genres: ["Deportes"], poster: expect.stringContaining("/espn2.png"),
       });
-      const catalog = await app.inject({ method: "GET", url: "/catalog/tv/latam-tv.json" });
-      expect(catalog.json().metas).toHaveLength(2);
-      expect(catalog.json().metas[0]).toMatchObject({
-        id: "latam-tv:canal-uno",
-        type: "tv",
-        name: "Canal Uno alternativo",
-        genres: ["Deportes"],
-        poster: expect.stringMatching(/\/latam-tv\/posters\/canal-uno\.png$/),
-      });
-      const regionales = await app.inject({
-        method: "GET",
-        url: "/catalog/tv/latam-tv/genre=Regionales.json",
-      });
-      expect(regionales.json().metas).toEqual([
-        expect.objectContaining({ id: "latam-tv:canal-dos", genres: ["Regionales"] }),
-      ]);
-      const meta = await app.inject({ method: "GET", url: "/meta/tv/latam-tv:canal-uno.json" });
-      expect(meta.json()).toEqual({
-        meta: expect.objectContaining({
-          id: "latam-tv:canal-uno",
-          type: "tv",
-          name: "Canal Uno alternativo",
-          description: "Canal de televisión en vivo · Deportes: Canal Uno alternativo",
-          genres: ["Deportes"],
-        }),
-      });
-    } finally {
-      await app.close();
-    }
+    } finally { await app.close(); }
   });
 });

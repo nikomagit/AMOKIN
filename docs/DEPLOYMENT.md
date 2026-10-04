@@ -18,7 +18,7 @@ https://amokin.onrender.com/manifest.json
 
 El servicio de Render está conectado a la rama `main`; cada actualización inicia un despliegue automático. El plan gratuito puede entrar en reposo y provocar un arranque lento en la primera solicitud.
 
-La TV en vivo pasa por el proxy HLS de AMOKIN porque las firmas del proveedor están vinculadas a la IP de resolución. El consumo de ancho de banda del servicio aumenta mientras haya reproducciones activas.
+Los cinco canales deportivos pasan por el proxy HLS de AMOKIN, que mantiene los headers del reproductor y la misma salida de red durante la reproducción. El consumo de ancho de banda del servicio aumenta mientras haya reproducciones activas.
 
 ## Render desde cero
 
@@ -70,8 +70,8 @@ https://addon.tu-dominio.example/manifest.json
 | `JKANIME_BASE_URL` | `https://jkanime.net` |
 | `ANIME_MAPPING_BASE_URL` | `https://animeapi.my.id` |
 | `ANILIST_BASE_URL` | `https://graphql.anilist.co` |
-| `LATAM_TV_CATALOG_URL` | `https://embed.saohgdassregions.com` |
-| `LATAM_TV_PLAYER_HOST_SUFFIXES` | `saohgdassregions.com,ksdjugfssddeports.com` |
+| `SPORTS_TV_BASE_URL` | `https://futbollibrefullhd.org` |
+| `SPORTS_TV_PLAYER_HOST_SUFFIXES` | `tvf90.com,ftlly.com` |
 | `METADATA_BASE_URL` | `https://v3-cinemeta.strem.io` |
 | `METADATA_FALLBACK_BASE_URL` | `https://94c8cb9f702d-tmdb-addon.baby-beamup.club` |
 | `CATALOG_CACHE_TTL_MS` | `900000` |
@@ -89,10 +89,9 @@ GET /catalog/series/hentaila-popular.json
 GET /catalog/series/hentaila-airing.json
 GET /catalog/series/hentaila-uncensored.json
 GET /catalog/tv/latam-tv/genre=Deportes.json
-GET /catalog/tv/latam-tv/genre=Regionales.json
 ```
 
-Después abre una ficha, un episodio y una respuesta `/stream/...`. Confirma que las URLs son HTTPS y que no existe `infoHash`.
+Después abre una ficha, un episodio y una respuesta `/stream/...`. Confirma que las URLs son HTTPS y que no existe `infoHash`. El catálogo TV debe contener exactamente DSport, DSport+, ESPN, ESPN2 y ESPN3. Las antiguas variables `LATAM_TV_CATALOG_URL` y `LATAM_TV_PLAYER_HOST_SUFFIXES` ya no se usan y pueden retirarse de Render.
 
 ## Actualizar un VPS
 

@@ -10,10 +10,10 @@ describe("metadata configuration", () => {
     expect(config.anilistBaseUrl).toBe("https://graphql.anilist.co");
     expect(config).not.toHaveProperty("tmdbApiKey");
     expect(config.tmdbLanguage).toBe("es-ES");
-    expect(config.latamTvCatalogUrl).toBe("https://embed.saohgdassregions.com");
-    expect(config.latamTvPlayerHostSuffixes).toEqual([
-      "saohgdassregions.com",
-      "ksdjugfssddeports.com",
+    expect(config.sportsTvBaseUrl).toBe("https://futbollibrefullhd.org");
+    expect(config.sportsTvPlayerHostSuffixes).toEqual([
+      "tvf90.com",
+      "ftlly.com",
     ]);
     expect(config.externalStreamAddons).toEqual([]);
   });
@@ -22,6 +22,15 @@ describe("metadata configuration", () => {
     const config = loadConfig({ TMDB_API_KEY: "private-test-key", TMDB_LANGUAGE: "es-CL" });
     expect(config.tmdbApiKey).toBe("private-test-key");
     expect(config.tmdbLanguage).toBe("es-CL");
+  });
+
+  it("does not reactivate the retired TV source from old deployment variables", () => {
+    const config = loadConfig({
+      LATAM_TV_CATALOG_URL: "https://retired.example",
+      LATAM_TV_PLAYER_HOST_SUFFIXES: "retired.example",
+    });
+    expect(config.sportsTvBaseUrl).toBe("https://futbollibrefullhd.org");
+    expect(config.sportsTvPlayerHostSuffixes).toEqual(["tvf90.com", "ftlly.com"]);
   });
 
   it("loads external stream manifests from private runtime settings", () => {

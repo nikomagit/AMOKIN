@@ -1,66 +1,40 @@
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
-import {
-  LATAM_TV_GENRES,
-  LatamTvClient,
-  latamTvChannelSlug,
-} from "../src/experimental/latam-tv/client.js";
-import { fetchText } from "../src/lib/http.js";
+import { buildApp } from "../src/app.js";
+import { loadConfig } from "../src/config.js";
 
-const catalogUrl = process.env.LATAM_TV_CATALOG_URL?.trim() || "https://embed.saohgdassregions.com/";
-const userAgent = process.env.PLAYBACK_USER_AGENT?.trim()
-  || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
-const client = new LatamTvClient({
-  catalogUrl,
-  trustedPlayerHostSuffixes: (process.env.LATAM_TV_PLAYER_HOST_SUFFIXES ?? "saohgdassregions.com,ksdjugfssddeports.com").split(","),
-  timeoutMs: 15_000,
-  maxResponseBytes: 5 * 1024 * 1024,
-  userAgent,
-  maxStreams: 4,
-}, fetchText);
-
-const channels = await client.getChannels();
-if (channels.length === 0) throw new Error("Catalog returned no channels");
-const genreCounts = Object.fromEntries(
-  LATAM_TV_GENRES.map((genre) => [genre, channels.filter((channel) => channel.genre === genre).length]),
-);
-if (Object.values(genreCounts).some((count) => count === 0)) {
-  throw new Error("Catalog did not return channels for both genres");
-}
-await Promise.all(channels.map(async (candidate) => {
-  const slug = latamTvChannelSlug(candidate.id);
-  if (!slug) throw new Error(`Invalid channel id ${candidate.id}`);
-  const poster = await readFile(resolve(process.cwd(), "assets", "latam-tv", "posters", `${slug}.png`));
-  if (!poster.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
-    throw new Error(`Invalid PNG poster for ${candidate.id}`);
+const app = await buildApp(loadConfig({ ...process.env, LOG_LEVEL: "silent" }));
+const report: Array<Record<string, unknown>> = [];
+let failed = false;
+try {
+  const catalog = (await app.inject("/catalog/tv/latam-tv.json")).json().metas;
+  if (catalog.length !== 5) throw new Error("Expected exactly five sports channels");
+  for (const channel of catalog) {
+    const start = Date.now();
+    try {
+      const poster = await app.inject(new URL(channel.poster).pathname);
+      if (poster.statusCode !== 200) throw new Error("Missing poster");
+      const meta = (await app.inject(`/meta/tv/${channel.id}.json`)).json().meta;
+      if (meta?.name !== channel.name) throw new Error("Incorrect metadata");
+      const streams = (await app.inject(`/stream/tv/${channel.id}.json`)).json().streams;
+      if (!streams?.length) throw new Error("No HLS stream resolved");
+      const playlist = await app.inject(new URL(streams[0].url).pathname);
+      if (playlist.statusCode !== 200 || !playlist.body.startsWith("#EXTM3U")) {
+        throw new Error(`Invalid playlist (HTTP ${playlist.statusCode})`);
+      }
+      const segmentUrl = playlist.body.split("\n").find((line) => line.startsWith("http"));
+      if (!segmentUrl) throw new Error("Missing HLS segment");
+      const segment = await app.inject(new URL(segmentUrl).pathname);
+      if (segment.statusCode !== 200 || segment.rawPayload.length < 188) {
+        throw new Error(`Invalid segment (HTTP ${segment.statusCode})`);
+      }
+      report.push({
+        channel: channel.name, poster: poster.statusCode, playlist: playlist.statusCode,
+        segment: segment.statusCode, bytes: segment.rawPayload.length, elapsedMs: Date.now() - start,
+      });
+    } catch (error) {
+      failed = true;
+      report.push({ channel: channel.name, error: error instanceof Error ? error.message : "Failed" });
+    }
   }
-}));
-const requested = process.env.LATAM_TV_CHANNEL?.trim().toLocaleLowerCase("en");
-const channel = channels.find((candidate) => candidate.id === requested || candidate.name.toLocaleLowerCase("en") === requested)
-  ?? channels[0];
-if (!channel) throw new Error("No channel selected");
-const streams = await client.resolve(channel);
-if (streams.length === 0) throw new Error(`No playback options resolved for ${channel.name}`);
-
-const checks = await Promise.all(streams.map(async (stream) => {
-  const playlist = await fetchText(stream.url, {
-    timeoutMs: 15_000,
-    maxBytes: 512 * 1024,
-    upstream: stream.name,
-    headers: stream.headers,
-  });
-  const streamUrl = new URL(stream.url);
-  return {
-    option: stream.name,
-    endpoint: `${streamUrl.origin}${streamUrl.pathname}`,
-    validHls: playlist.startsWith("#EXTM3U"),
-  };
-}));
-if (checks.some((check) => !check.validHls)) throw new Error("A resolved option did not return an HLS playlist");
-console.log(JSON.stringify({
-  channels: channels.length,
-  genres: genreCounts,
-  posters: channels.length,
-  channel: channel.name,
-  checks,
-}, null, 2));
+  console.log(JSON.stringify({ version: (await app.inject("/manifest.json")).json().version, checks: report }, null, 2));
+} finally { await app.close(); }
+if (failed) process.exitCode = 1;

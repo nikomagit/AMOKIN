@@ -114,16 +114,15 @@ export async function buildApp(
   const catalogService = dependencies.catalogService ?? new ProviderCatalogService(animeProviders);
   const metaService = dependencies.metaService ?? new ProviderMetaService(animeProviders);
   const latamTv = new LatamTvClient({
-    catalogUrl: config.latamTvCatalogUrl,
-    trustedPlayerHostSuffixes: config.latamTvPlayerHostSuffixes,
+    catalogUrl: config.sportsTvBaseUrl,
+    trustedPlayerHostSuffixes: config.sportsTvPlayerHostSuffixes,
     timeoutMs: config.requestTimeoutMs,
     maxResponseBytes: config.maxResponseBytes,
     userAgent: config.playbackUserAgent,
     maxStreams: config.maxStreams,
-    catalogCacheTtlMs: config.catalogCacheTtlMs,
   }, dependencies.latamTvRequest);
   const latamTvProxy = new LatamTvProxy({
-    trustedHostSuffixes: config.latamTvPlayerHostSuffixes,
+    trustedHostSuffixes: config.sportsTvPlayerHostSuffixes,
     timeoutMs: config.requestTimeoutMs,
   }, dependencies.latamTvProxyRequest);
 
@@ -136,14 +135,14 @@ export async function buildApp(
       manifest: "/manifest.json",
       logo: "/logo.jpg",
       health: "/health",
-      sources: ["AnimeAV1", "Hentaila", "JKAnime", "LATAM TV", ...config.externalStreamAddons.map((source) => source.name)],
+      sources: ["AnimeAV1", "Hentaila", "JKAnime", "Deportes", ...config.externalStreamAddons.map((source) => source.name)],
       streaming: "AMOKIN direct sources + configured stream addons",
       p2p: false,
     };
   });
 
   app.get("/manifest.json", async (_request, reply) => {
-    void reply.header("cache-control", "public, max-age=86400");
+    void reply.header("cache-control", "no-cache, max-age=0, must-revalidate");
     return manifest;
   });
 
@@ -159,7 +158,7 @@ export async function buildApp(
     return {
       status: "ok",
       version: manifest.version,
-      sources: ["AnimeAV1", "Hentaila", "JKAnime", "LATAM TV", ...config.externalStreamAddons.map((source) => source.name)],
+      sources: ["AnimeAV1", "Hentaila", "JKAnime", "Deportes", ...config.externalStreamAddons.map((source) => source.name)],
       p2p: false,
     };
   });
@@ -211,6 +210,7 @@ export async function buildApp(
     void reply.header("cache-control", "public, max-age=60, stale-if-error=300");
     try {
       if (request.params.type === "tv" && request.params.id.startsWith("latam-tv:")) {
+        void reply.header("cache-control", "no-store");
         const origin = requestOrigin(request);
         return {
           streams: (await latamTv.resolveChannel(request.params.id)).map((stream) => ({

@@ -30,9 +30,8 @@ function extension(url: URL): string {
 }
 
 /**
- * Short-lived, allowlisted HLS relay. The upstream signs playlists for the IP
- * that resolves them, so production playback must fetch playlists and segments
- * through the same AMOKIN instance.
+ * Short-lived, allowlisted HLS relay. Playlists and segments use the same
+ * AMOKIN instance and player headers; temporary source URLs stay server-side.
  */
 export class LatamTvProxy {
   private readonly entries = new Map<string, ProxyEntry>();

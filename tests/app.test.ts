@@ -19,10 +19,11 @@ describe("HTTP addon interface", () => {
     const response = await app.inject({ method: "GET", url: "/manifest.json" });
     expect(response.statusCode).toBe(200);
     expect(response.headers["access-control-allow-origin"]).toBe("*");
+    expect(response.headers["cache-control"]).toBe("no-cache, max-age=0, must-revalidate");
     const body = response.json();
     expect(body).toMatchObject({
       id: "org.nuvio.amokin",
-      version: "2.3.4",
+      version: "2.4.0",
       name: "AMOKIN",
       description: "Contenido en Latino y sin torrents para Nuvio/Stremio, creado por y para NIKOMA.",
       logo: "https://amokin.onrender.com/logo.jpg",
@@ -45,15 +46,15 @@ describe("HTTP addon interface", () => {
     expect(body.catalogs.at(-1)).toMatchObject({
       type: "tv",
       id: "latam-tv",
-      extra: [{ name: "genre", options: ["Deportes", "Regionales"] }],
+      extra: [{ name: "genre", options: ["Deportes"] }],
     });
 
     const health = await app.inject({ method: "GET", url: "/health" });
     expect(health.statusCode).toBe(200);
     expect(health.json()).toMatchObject({
-      version: "2.3.4",
+      version: "2.4.0",
       p2p: false,
-      sources: ["AnimeAV1", "Hentaila", "JKAnime", "LATAM TV"],
+      sources: ["AnimeAV1", "Hentaila", "JKAnime", "Deportes"],
     });
   });
 
@@ -105,31 +106,20 @@ describe("HTTP addon interface", () => {
   it("integrates the LATAM TV catalog, genre filter, metadata, poster and stream routes", async () => {
     const latamTvRequest: FetchText = vi.fn(async (url) => {
       const value = new URL(url);
-      if (value.href === "https://embed.example/") {
-        return `
-          <div class="category active" id="deportes">
-            <div class="channel-name">Canal Deportivo</div>
-            <a href="https://embed.example/deportivo.php">LINK</a>
-          </div>
-          <div class="category" id="regionales">
-            <div class="channel-name">Canal Regional</div>
-            <a href="https://embed.example/regional.php">LINK</a>
-          </div>`;
+      if (value.href === "https://embed.example/en-vivo/espn-2") {
+        return '<iframe src="https://player.example/online/canal.php?stream=espn2"></iframe>';
       }
-      if (value.href === "https://embed.example/deportivo.php") {
-        return `<h2>JW PLAYER</h2><input value="&lt;iframe src=&quot;https://embed.example/embed2/deportivo.php&quot;&gt;&lt;/iframe&gt;">`;
+      if (value.pathname === "/online/canal.php") {
+        return '<iframe src="/5.php?stream=espn2"></iframe>';
       }
-      if (value.href === "https://embed.example/embed2/deportivo.php") {
-        return `<iframe src="https://player.example/live.php?channel=deportivo"></iframe>`;
-      }
-      if (value.hostname === "player.example") {
-        return `file: "https:\/\/player.example\/playlist.php?id=deportivo";`;
+      if (value.pathname === "/5.php") {
+        return 'var playbackURL = "https://player.example/playlist/mono.m3u8?token=temporary";';
       }
       throw new Error(`Unexpected LATAM TV URL: ${value.href}`);
     });
     const latamTvProxyRequest = vi.fn(async (url: string) => {
       const value = new URL(url);
-      if (value.pathname === "/playlist.php") {
+      if (value.pathname === "/playlist/mono.m3u8") {
         return new Response(
           "#EXTM3U\n#EXT-X-TARGETDURATION:10\n#EXTINF:10,\nhttps://player.example/live/segment.ts?token=fresh\n",
           { headers: { "content-type": "application/vnd.apple.mpegurl" } },
@@ -154,23 +144,28 @@ describe("HTTP addon interface", () => {
       url: "/catalog/tv/latam-tv/genre=Deportes.json",
     });
     expect(catalog.statusCode).toBe(200);
-    expect(catalog.json().metas).toEqual([
+    expect(catalog.json().metas).toHaveLength(5);
+    expect((await app.inject("/catalog/tv/latam-tv/genre=Regionales.json")).json().metas).toEqual([]);
+    expect((await app.inject("/meta/tv/latam-tv:tnt.json")).json().meta).toBeNull();
+    expect((await app.inject("/stream/tv/latam-tv:tnt.json")).json().streams).toEqual([]);
+    expect(catalog.json().metas).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        id: "latam-tv:deportivo",
-        name: "Canal Deportivo",
+        id: "latam-tv:espn2",
+        name: "ESPN2",
         genres: ["Deportes"],
-        poster: expect.stringMatching(/\/latam-tv\/posters\/deportivo\.png$/),
+        poster: expect.stringMatching(/\/latam-tv\/posters\/espn2\.png$/),
       }),
-    ]);
+    ]));
 
-    const meta = await app.inject({ method: "GET", url: "/meta/tv/latam-tv:deportivo.json" });
+    const meta = await app.inject({ method: "GET", url: "/meta/tv/latam-tv:espn2.json" });
     expect(meta.json().meta).toMatchObject({
-      id: "latam-tv:deportivo",
+      id: "latam-tv:espn2",
       genres: ["Deportes"],
     });
 
-    const stream = await app.inject({ method: "GET", url: "/stream/tv/latam-tv:deportivo.json" });
+    const stream = await app.inject({ method: "GET", url: "/stream/tv/latam-tv:espn2.json" });
     const streams = stream.json().streams;
+    expect(stream.headers["cache-control"]).toBe("no-store");
     expect(streams).toEqual([
       expect.objectContaining({
         type: "hls",
@@ -192,7 +187,7 @@ describe("HTTP addon interface", () => {
     expect(proxiedResource.headers["content-type"]).toContain("video/mp2t");
     expect(proxiedResource.rawPayload).toEqual(Buffer.from([0x47, 0x40, 0x00, 0x10]));
 
-    const poster = await app.inject({ method: "GET", url: "/latam-tv/posters/espnpremium.png" });
+    const poster = await app.inject({ method: "GET", url: "/latam-tv/posters/espn2.png" });
     expect(poster.statusCode).toBe(200);
     expect(poster.headers["content-type"]).toContain("image/png");
     expect(poster.rawPayload.byteLength).toBeGreaterThan(10_000);
