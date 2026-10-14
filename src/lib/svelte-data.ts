@@ -53,7 +53,7 @@ export function unflattenSvelteData(values: unknown[]): unknown {
   return decodeReference(0);
 }
 
-export function parseSvelteDataResponse(body: string, upstream = "Hentaila"): Record<string, unknown> {
+export function parseSvelteDataResponse(body: string, upstream = "Svelte provider"): Record<string, unknown> {
   let payload: unknown;
   try {
     payload = JSON.parse(body);

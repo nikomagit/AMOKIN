@@ -76,13 +76,12 @@ export class DirectStreamResolverRegistry implements DirectStreamResolver {
 
   private isSupported(embed: ProviderEmbed): boolean {
     const server = embed.server.toLocaleLowerCase("en");
-    return ["vip", "hls", "yourupload", "mp4upload"].includes(server) || server.startsWith("jkanime ");
+    return ["hls", "mp4upload"].includes(server) || server.startsWith("jkanime ");
   }
 
   private async resolve(embed: ProviderEmbed, episodePageUrl: string): Promise<ResolvedDirectStream | null> {
     const server = embed.server.toLocaleLowerCase("en");
-    if (server === "vip" || server === "hls") return this.resolveHls(embed);
-    if (server === "yourupload") return this.resolveYourUpload(embed, episodePageUrl);
+    if (server === "hls") return this.resolveHls(embed);
     if (server === "mp4upload") return this.resolveMp4Upload(embed, episodePageUrl);
     if (server.startsWith("jkanime ")) return this.resolveJkAnime(embed, episodePageUrl);
     return null;
@@ -90,8 +89,7 @@ export class DirectStreamResolverRegistry implements DirectStreamResolver {
 
   private resolveHls(embed: ProviderEmbed): ResolvedDirectStream | null {
     const source = new URL(embed.url);
-    const supportedHost = source.hostname === "cdn.hvidserv.com" || source.hostname === "player.zilla-networks.com";
-    if (!supportedHost) return null;
+    if (source.hostname !== "player.zilla-networks.com") return null;
     const id = source.pathname.match(/^\/play\/([a-f\d]{32})\/?$/i)?.[1];
     if (!id) return null;
     return {
@@ -107,19 +105,6 @@ export class DirectStreamResolverRegistry implements DirectStreamResolver {
         "Sec-Fetch-Site": "same-origin",
       },
     };
-  }
-
-  private async resolveYourUpload(embed: ProviderEmbed, episodePageUrl: string): Promise<ResolvedDirectStream | null> {
-    const source = new URL(embed.url);
-    if (!allowedHost(source, "yourupload.com") || !source.pathname.startsWith("/embed/")) return null;
-    const body = await this.request(source, this.pageOptions("YourUpload", episodePageUrl));
-    const match = firstMatch(body, [
-      /(?:file|src)\s*:\s*["'](https?:\\?\/\\?\/[^"']+?\.mp4[^"']*)["']/i,
-      /<source[^>]+src=["'](https?:\/\/[^"']+\.mp4[^"']*)["']/i,
-    ]);
-    const url = match && validatedUrl(match, ["vidcache.net", "yourupload.com"], /\.mp4$/i);
-    if (!url) return null;
-    return { server: embed.server, language: embed.language, url, type: "mp4", label: "MP4", headers: directHeaders(source, this.config.playbackUserAgent) };
   }
 
   private async resolveMp4Upload(embed: ProviderEmbed, episodePageUrl: string): Promise<ResolvedDirectStream | null> {

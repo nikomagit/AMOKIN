@@ -9,10 +9,6 @@ services:
         value: 0.0.0.0
       - key: PORT
         value: 7100
-      - key: HENTAILA_BASE_URL
-        value: https://hentaila.com
-      - key: HENTAILA_CDN_BASE_URL
-        value: https://cdn.hentaila.com
       - key: ANIMEAV1_BASE_URL
         value: https://animeav1.com
       - key: ANIMEAV1_CDN_BASE_URL

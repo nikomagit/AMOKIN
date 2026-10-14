@@ -94,7 +94,7 @@ export class JkAnimeClient implements DirectMediaProvider {
   getCatalog(_kind: ProviderCatalogKind, _page: number): Promise<ProviderCatalogPage> {
     return Promise.resolve({
       results: [], currentPage: 1, recordsPerPage: 0, totalPages: 0,
-      totalRecords: 0, orderKey: "default", status: null, uncensored: null,
+      totalRecords: 0, orderKey: "default", status: null,
     });
   }
 

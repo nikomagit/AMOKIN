@@ -1,6 +1,6 @@
 # AMOKIN para Nuvio/Stremio
 
-AMOKIN resuelve reproducción HTTP/HTTPS directa desde [AnimeAV1](https://animeav1.com/), [Hentaila](https://hentaila.com/) y [JKAnime](https://jkanime.net/), incorpora cinco canales deportivos en vivo y también combina respuestas de addons externos configurables. Los catálogos y metadatos de esos addons externos no se importan.
+AMOKIN resuelve reproducción HTTP/HTTPS directa desde [AnimeAV1](https://animeav1.com/) y [JKAnime](https://jkanime.net/), incorpora cinco canales deportivos en vivo y también combina respuestas de addons externos configurables. Los catálogos y metadatos de esos addons externos no se importan.
 
 Latinobrid se integra como un agregador externo de resultados en español latino, con un funcionamiento comparable a Comet o Torrentio y respaldado por las cuentas PM/TB configuradas; no se considera un proveedor HTTP propio de AMOKIN. Al cliente solo se reenvían entradas con una URL HTTP/HTTPS reproducible. Se filtran torrents sin resolver, magnet links, `infoHash`, trackers y enlaces promocionales; el manifest declara `p2p: false`.
 
@@ -28,11 +28,10 @@ La versión pública actual se despliega automáticamente desde la rama `main` e
 - Agregación opcional de los streams de Latinobrid PM/TB, Nube+ y NoTorrent, sin importar sus catálogos.
 - Orden de streams: Latinobrid PM/TB, Nube+, contenido propio de AMOKIN y, al final, NoTorrent.
 - Deduplicación por URL final, cachés TTL, timeouts y aislamiento de errores por proveedor/resolver.
-- Tres catálogos Hentaila: populares, al aire y sin censura.
 - Catálogo `Deportes • En vivo` con DSport, DSport+, ESPN, ESPN2 y ESPN3, posters identificativos y género `Deportes`.
 - Proxy HLS temporal para TV: conserva los headers del reproductor y retransmite playlists y segmentos sin almacenarlos en disco.
 
-AnimeAV1 y Hentaila comparten un cliente para los datos públicos SvelteKit. JKAnime usa su búsqueda y páginas públicas. Ninguno de los tres publica actualmente IMDb/TMDB/Kitsu/MAL/AniList en sus fichas, por lo que los IDs se convierten primero en metadatos y alias; la similitud textual se usa al final, no como identidad primaria.
+AnimeAV1 usa sus datos públicos SvelteKit y JKAnime usa su búsqueda y páginas públicas. Ninguno publica actualmente IMDb/TMDB/Kitsu/MAL/AniList en sus fichas, por lo que los IDs se convierten primero en metadatos y alias; la similitud textual se usa al final, no como identidad primaria.
 
 ## IDs admitidos
 
@@ -47,11 +46,10 @@ AnimeAV1 y Hentaila comparten un cliente para los datos públicos SvelteKit. JKA
 /stream/series/mal:21:1.json
 /stream/series/anidb:69:1.json
 /stream/series/amokin:animeav1:one-piece:1.json
-/stream/series/amokin:hentaila:slug:1.json
 /stream/series/amokin:jkanime:one-piece:1.json
 ```
 
-IMDb, TMDB y TVDB usan `temporada:episodio`. Kitsu, AniList, MAL y AniDB aceptan `id:episodio`, porque normalmente cada registro de esas bases representa una temporada/cour; también se acepta explícitamente `id:temporada:episodio`. Los IDs `amokin:` provienen de los catálogos y no necesitan metadatos externos.
+IMDb, TMDB y TVDB usan `temporada:episodio`. Kitsu, AniList, MAL y AniDB aceptan `id:episodio`, porque normalmente cada registro de esas bases representa una temporada/cour; también se acepta explícitamente `id:temporada:episodio`. Los IDs internos `amokin:` no necesitan metadatos externos.
 
 ## Estrategia de metadatos
 
@@ -69,8 +67,6 @@ AnimeAPI agrega datos mantenidos por terceros y tiene limitaciones conocidas en 
 ```text
 GET /health
 GET /manifest.json
-GET /catalog/series/{catalogId}.json
-GET /catalog/series/{catalogId}/skip=20.json
 GET /catalog/tv/latam-tv.json
 GET /catalog/tv/latam-tv/genre=Deportes.json
 GET /meta/tv/latam-tv:{slug}.json
@@ -81,9 +77,6 @@ GET /stream/{type}/{id}.json
 
 Catálogos:
 
-- `hentaila-popular`
-- `hentaila-airing`
-- `hentaila-uncensored`
 - `latam-tv` (género: `Deportes`; ID histórico conservado por compatibilidad)
 
 ## Ejecución local
@@ -108,8 +101,6 @@ La configuración predeterminada funciona con IDs nativos y las bases públicas 
 | `PORT` | `7100` | Puerto HTTP. |
 | `ANIMEAV1_BASE_URL` | `https://animeav1.com` | Origen de AnimeAV1. |
 | `ANIMEAV1_CDN_BASE_URL` | `https://cdn.animeav1.com` | Imágenes de AnimeAV1. |
-| `HENTAILA_BASE_URL` | `https://hentaila.com` | Origen de Hentaila. |
-| `HENTAILA_CDN_BASE_URL` | `https://cdn.hentaila.com` | Imágenes de Hentaila. |
 | `JKANIME_BASE_URL` | `https://jkanime.net` | Origen de JKAnime. |
 | `ANIME_MAPPING_BASE_URL` | `https://animeapi.my.id` | Mapa opcional entre IDs de anime. |
 | `ANILIST_BASE_URL` | `https://graphql.anilist.co` | GraphQL de metadatos y aliases. |
@@ -147,7 +138,6 @@ Consulta [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). GitHub Pages no sirve porque 
 
 ```text
 Nuvio / Stremio
-  ├─ /catalog → Hentaila → metas con ID amokin
   ├─ /catalog/tv → cinco canales deportivos → posters con ID latam-tv
   ├─ /meta    → ID amokin → ficha y episodios
   └─ /stream
@@ -155,17 +145,17 @@ Nuvio / Stremio
        ├─ ID latam-tv → resolución HLS tardía + headers del reproductor
        └─ ID externo
             ├─ metadata + mapa de IDs + aliases AniList
-            │    → AnimeAV1 / Hentaila / JKAnime
+            │    → AnimeAV1 / JKAnime
             │    → matching → episodio → resolver HTTP
             └─ manifests externos configurados → solo /stream
                  → filtro HTTP/HTTPS → deduplicación
 ```
 
 - `src/metadata/`: parser, consultores y mapa de IDs.
-- `src/providers/svelte/`: cliente compartido AnimeAV1/Hentaila.
-- `src/providers/animeav1/`, `hentaila/`, `jkanime/`: proveedores de anime.
+- `src/providers/svelte/`: cliente de datos públicos SvelteKit usado por AnimeAV1.
+- `src/providers/animeav1/` y `src/providers/jkanime/`: proveedores de anime.
 - `src/providers/resolvers.ts`: HLS/MP4 directos permitidos.
-- `src/services/`: catálogos, fichas, matching y búsqueda.
+- `src/services/`: fichas, matching y búsqueda.
 - `scripts/validate-live.ts`: validación real de IDs, temporadas y streams.
 
 AMOKIN no almacena vídeo. Para anime resuelve la URL y el reproductor accede al host final con los headers declarados. Para TV resuelve las páginas seleccionadas al pedir un stream y retransmite el playlist y sus segmentos HLS con los headers del reproductor. El catálogo anterior y sus canales regionales fueron retirados.

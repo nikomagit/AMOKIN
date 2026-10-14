@@ -29,7 +29,7 @@ Los cinco canales deportivos pasan por el proxy HLS de AMOKIN, que mantiene los 
 5. Espera a que `/health` responda `{"status":"ok",...}`.
 6. Instala `https://TU-SERVICIO.onrender.com/manifest.json` en Nuvio/Stremio.
 
-Los valores predeterminados ya incluyen los orígenes públicos de AnimeAV1, Hentaila y JKAnime. Solo cámbialos si mantienes un mirror compatible autorizado.
+Los valores predeterminados ya incluyen los orígenes públicos de AnimeAV1 y JKAnime. Solo cámbialos si mantienes un mirror compatible autorizado.
 
 ## Koyeb
 
@@ -65,8 +65,6 @@ https://addon.tu-dominio.example/manifest.json
 | `LOG_LEVEL` | `info` |
 | `ANIMEAV1_BASE_URL` | `https://animeav1.com` |
 | `ANIMEAV1_CDN_BASE_URL` | `https://cdn.animeav1.com` |
-| `HENTAILA_BASE_URL` | `https://hentaila.com` |
-| `HENTAILA_CDN_BASE_URL` | `https://cdn.hentaila.com` |
 | `JKANIME_BASE_URL` | `https://jkanime.net` |
 | `ANIME_MAPPING_BASE_URL` | `https://animeapi.my.id` |
 | `ANILIST_BASE_URL` | `https://graphql.anilist.co` |
@@ -85,9 +83,6 @@ Comprueba al menos:
 ```text
 GET /health
 GET /manifest.json
-GET /catalog/series/hentaila-popular.json
-GET /catalog/series/hentaila-airing.json
-GET /catalog/series/hentaila-uncensored.json
 GET /catalog/tv/latam-tv/genre=Deportes.json
 ```
 

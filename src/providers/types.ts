@@ -2,9 +2,8 @@ import type { ExternalIds, MediaMetadata, MediaType } from "../types.js";
 
 export type ProviderId =
   | "animeav1"
-  | "hentaila"
   | "jkanime";
-export type ProviderCatalogKind = "popular" | "airing" | "uncensored";
+export type ProviderCatalogKind = "popular" | "airing";
 export type ProviderRequestContext = Pick<
   MediaMetadata,
   "type" | "title" | "aliases" | "externalIds" | "year" | "season" | "episode"
@@ -95,7 +94,6 @@ export interface ProviderCatalogPage {
   totalRecords: number;
   orderKey: string;
   status: number | null;
-  uncensored: boolean | null;
 }
 
 export interface DirectMediaProvider {

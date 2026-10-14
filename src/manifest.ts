@@ -1,20 +1,13 @@
-import { catalogDefinitions } from "./catalogs.js";
 import { LATAM_TV_CATALOG_ID, LATAM_TV_GENRES } from "./experimental/latam-tv/client.js";
 
 export const manifest = Object.freeze({
   id: "org.nuvio.amokin",
-  version: "2.4.0",
+  version: "2.5.0",
   name: "AMOKIN",
   logo: "https://amokin.onrender.com/logo.jpg",
   description:
     "Contenido en Latino y sin torrents para Nuvio/Stremio, creado por y para NIKOMA.",
   catalogs: [
-    ...catalogDefinitions.map((catalog) => ({
-      type: "series",
-      id: catalog.id,
-      name: catalog.name,
-      extra: [{ name: "skip", isRequired: false }],
-    })),
     {
       type: "tv",
       id: LATAM_TV_CATALOG_ID,
@@ -25,7 +18,7 @@ export const manifest = Object.freeze({
   resources: [
     {
       name: "catalog",
-      types: ["series", "tv"],
+      types: ["tv"],
     },
     {
       name: "meta",
@@ -43,7 +36,7 @@ export const manifest = Object.freeze({
   behaviorHints: {
     configurable: false,
     configurationRequired: false,
-    adult: true,
+    adult: false,
     p2p: false,
   },
 });

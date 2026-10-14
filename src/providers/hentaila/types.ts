@@ -1,9 +1,0 @@
-export type {
-  DirectMediaProvider as HentailaProvider,
-  ProviderCategory as HentailaCategory,
-  ProviderEmbed as HentailaEmbed,
-  ProviderEpisodePage as HentailaEpisodePage,
-  ProviderEpisodeSummary as HentailaEpisodeSummary,
-  ProviderMedia as HentailaMedia,
-  ProviderSearchResult as HentailaSearchResult,
-} from "../types.js";

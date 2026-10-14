@@ -83,10 +83,6 @@ export interface StreamSearchService {
   getStreams(type: string, id: string): Promise<AddonStream[]>;
 }
 
-export interface CatalogService {
-  getCatalog(type: string, id: string, skip: number): Promise<AddonMetaPreview[]>;
-}
-
 export interface MetaService {
   getMeta(type: string, id: string): Promise<AddonMeta | null>;
 }

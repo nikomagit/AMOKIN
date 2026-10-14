@@ -18,7 +18,7 @@ const media = {
 function provider(id: ProviderId, failure = false): DirectMediaProvider {
   return {
     id,
-    name: id === "animeav1" ? "AnimeAV1" : id === "jkanime" ? "JKAnime" : "Hentaila",
+    name: id === "animeav1" ? "AnimeAV1" : "JKAnime",
     baseUrl: `https://${id}.example`,
     cdnBaseUrl: `https://cdn.${id}.example`,
     search: failure
@@ -61,62 +61,10 @@ function resolver(url = "https://video.example/master.m3u8"): DirectStreamResolv
 }
 
 describe("multi-provider stream orchestration", () => {
-  it("matches a TMDB-only Hentaila title that is absent from the cross-ID map", async () => {
-    const kanojo = {
-      id: 182,
-      title: "Kanojo X Kanojo X Kanojo",
-      slug: "kanojo-x-kanojo-x-kanojo",
-      aka: {
-        "en-us": "Kanojo x Kanojo x Kanojo",
-        "ja-jp": "彼女×彼女×彼女～三姉妹とのドキドキ共同生活～",
-      },
-      startDate: "2009-12-25",
-      category: { name: "OVA", slug: "ova" },
-      genres: [],
-      episodes: [{ number: 1 }, { number: 2 }, { number: 3 }],
-    };
-    const tmdbMetadata: MetadataProvider = {
-      resolve: vi.fn().mockResolvedValue({
-        provider: "tmdb", baseId: "76975", type: "series",
-        title: "Kanojo x Kanojo x Kanojo",
-        aliases: [
-          "Kanojo x Kanojo x Kanojo",
-          "Kanojo x Kanojo x Kanojo: Sanshimai to no Dokidoki Kyoudou Seikatsu",
-        ],
-        externalIds: { tmdb: 76975 },
-        year: 2009, season: 1, episode: 1, seasonEpisodeCount: 3,
-      }),
-    };
-    const hentaila: DirectMediaProvider = {
-      id: "hentaila", name: "Hentaila", baseUrl: "https://hentaila.com",
-      cdnBaseUrl: "https://cdn.hentaila.com", getCatalog: vi.fn(),
-      search: vi.fn().mockResolvedValue([{
-        id: "182", title: kanojo.title, slug: kanojo.slug,
-      }]),
-      getMedia: vi.fn().mockResolvedValue(kanojo),
-      getEpisode: vi.fn().mockResolvedValue({
-        media: kanojo, episodeNumber: 1,
-        embeds: [{ server: "VIP", language: "SUB", url: "https://player.example/play/id" }],
-      }),
-    };
-    const service = new ProviderSearchService(testConfig(), tmdbMetadata, [
-      { provider: hentaila, resolvers: resolver() },
-    ]);
-    const streams = await service.getStreams("series", "tmdb:76975:1:1");
-    expect(hentaila.search).toHaveBeenCalledWith("Kanojo x Kanojo x Kanojo", expect.objectContaining({
-      externalIds: { tmdb: 76975 }, season: 1, episode: 1,
-    }));
-    expect(hentaila.getEpisode).toHaveBeenCalledWith(kanojo.slug, 1, expect.any(Object));
-    expect(streams).toHaveLength(1);
-    expect(streams[0]?.name).toContain("Hentaila");
-  });
-
-  it("keeps AnimeAV1 working when Hentaila and JKAnime fail", async () => {
+  it("keeps AnimeAV1 working when JKAnime fails", async () => {
     const anime = provider("animeav1");
-    const hentai = provider("hentaila", true);
     const service = new ProviderSearchService(testConfig(), metadata, [
       { provider: anime, resolvers: resolver() },
-      { provider: hentai, resolvers: resolver("https://other.example/master.m3u8") },
       { provider: provider("jkanime", true), resolvers: resolver("https://jk.example/master.m3u8") },
     ]);
     const streams = await service.getStreams("series", "tt0388629:1:1176");
@@ -124,21 +72,9 @@ describe("multi-provider stream orchestration", () => {
     expect(streams[0]?.name).toContain("AnimeAV1");
   });
 
-  it("keeps Hentaila working when AnimeAV1 and JKAnime fail", async () => {
+  it("keeps JKAnime working when AnimeAV1 fails", async () => {
     const service = new ProviderSearchService(testConfig(), metadata, [
       { provider: provider("animeav1", true), resolvers: resolver() },
-      { provider: provider("hentaila"), resolvers: resolver() },
-      { provider: provider("jkanime", true), resolvers: resolver("https://jk.example/master.m3u8") },
-    ]);
-    const streams = await service.getStreams("series", "tt0388629:1:1176");
-    expect(streams).toHaveLength(1);
-    expect(streams[0]?.name).toContain("Hentaila");
-  });
-
-  it("keeps JKAnime working when AnimeAV1 and Hentaila fail", async () => {
-    const service = new ProviderSearchService(testConfig(), metadata, [
-      { provider: provider("animeav1", true), resolvers: resolver() },
-      { provider: provider("hentaila", true), resolvers: resolver("https://other.example/master.m3u8") },
       { provider: provider("jkanime"), resolvers: resolver("https://jk.example/master.m3u8") },
     ]);
     const streams = await service.getStreams("series", "tt0388629:1:1176");
@@ -150,7 +86,6 @@ describe("multi-provider stream orchestration", () => {
     const shared = "https://video.example/same.m3u8";
     const service = new ProviderSearchService(testConfig(), metadata, [
       { provider: provider("animeav1"), resolvers: resolver(shared) },
-      { provider: provider("hentaila"), resolvers: resolver(shared) },
       { provider: provider("jkanime"), resolvers: resolver(shared) },
     ]);
     await expect(service.getStreams("series", "tt0388629:1:1176")).resolves.toHaveLength(1);

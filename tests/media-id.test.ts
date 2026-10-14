@@ -30,9 +30,6 @@ describe("Nuvio media IDs", () => {
     expect(parseProviderMediaId("amokin:animeav1:one-piece:1176")).toEqual({
       provider: "animeav1", slug: "one-piece", episode: 1176,
     });
-    expect(parseProviderMediaId("amokin:hentaila:itadaki-seieki")).toEqual({
-      provider: "hentaila", slug: "itadaki-seieki",
-    });
     expect(providerMediaId("jkanime", "haikyuu-third-season", 1)).toBe("amokin:jkanime:haikyuu-third-season:1");
     expect(parseProviderMediaId("amokin:jkanime:haikyuu-third-season:1")).toEqual({
       provider: "jkanime", slug: "haikyuu-third-season", episode: 1,

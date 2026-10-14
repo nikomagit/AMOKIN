@@ -1,6 +1,6 @@
 {
   "name": "amokin",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "AMOKIN: anime y TV en vivo mediante streams HTTP directos para Nuvio/Stremio.",
   "type": "module",
   "private": true,
@@ -9,7 +9,8 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",

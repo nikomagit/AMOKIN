@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { FetchText } from "../src/lib/http.js";
 import { AnimeAv1Client } from "../src/providers/animeav1/client.js";
-import { HentailaClient } from "../src/providers/hentaila/client.js";
 import { sveltePayload, testConfig } from "./helpers.js";
 
 const result = {
@@ -15,12 +14,11 @@ const result = {
 function catalogResponse(url: URL): string {
   const popular = url.searchParams.get("order") === "popular";
   const airing = url.searchParams.get("status") === "emision";
-  const uncensored = url.searchParams.has("uncensored");
   return sveltePayload({
     results: [result],
     total: 41,
     orderKey: popular ? "popular" : "default",
-    filters: { status: airing ? 2 : null, uncensored: uncensored ? true : null },
+    filters: { status: airing ? 2 : null },
     pagination: {
       currentPage: Number(url.searchParams.get("page") || 1),
       recordsPerPage: 20,
@@ -82,25 +80,6 @@ describe("public Svelte provider clients", () => {
       expect.objectContaining({ pathname: "/catalogo/__data.json" }),
       expect.any(Object),
     );
-  });
-
-  it("uses Hentaila's popular, airing and uncensored-popular filters", async () => {
-    const requested: URL[] = [];
-    const request: FetchText = vi.fn(async (rawUrl) => {
-      const url = new URL(rawUrl);
-      requested.push(url);
-      return catalogResponse(url);
-    });
-    const client = new HentailaClient(testConfig(), request);
-    await expect(client.getCatalog("popular", 1)).resolves.toMatchObject({ orderKey: "popular" });
-    await expect(client.getCatalog("airing", 1)).resolves.toMatchObject({ status: 2 });
-    await expect(client.getCatalog("uncensored", 1)).resolves.toMatchObject({
-      orderKey: "popular",
-      uncensored: true,
-    });
-    expect(requested.some((url) => url.searchParams.get("order") === "popular")).toBe(true);
-    expect(requested.some((url) => url.searchParams.get("status") === "emision")).toBe(true);
-    expect(requested.some((url) => url.searchParams.has("uncensored") && url.searchParams.get("order") === "popular")).toBe(true);
   });
 
   it("rejects unsafe provider slugs without making a request", async () => {

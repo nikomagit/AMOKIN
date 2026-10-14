@@ -60,17 +60,16 @@ Orden efectivo:
 5. tipo, año, marcador de temporada y cantidad de episodios;
 6. similitud textual como último fallback.
 
-Una identidad externa exacta no se rechaza por idioma. Actualmente AnimeAV1, Hentaila y JKAnime no publican esos IDs, así que en esos proveedores las equivalencias mejoran la lista de aliases y la identidad de temporada; no se finge un match directo por ID.
+Una identidad externa exacta no se rechaza por idioma. Actualmente AnimeAV1 y JKAnime no publican esos IDs, así que en esos proveedores las equivalencias mejoran la lista de aliases y la identidad de temporada; no se finge un match directo por ID.
 
 ### Auditoría de proveedores
 
 | Proveedor | Búsqueda | IDs externos publicados | Temporadas | Episodios | Streams aceptados |
 |---|---|---|---|---|---|
 | AnimeAV1 | texto en `catalogo/__data.json` | ninguno observado | ficha independiente o listado propio | número en datos SvelteKit | HLS y MP4Upload |
-| Hentaila | texto en `catalogo/__data.json` | ninguno observado | normalmente ficha independiente | número en datos SvelteKit | VIP/HLS, YourUpload, MP4Upload |
 | JKAnime | `GET /buscar?q=` | ninguno observado | ficha independiente | `/{slug}/{episodio}/` | UM/UMV con HLS público |
 
-AnimeAV1 y Hentaila publican título, aliases (`aka`), fecha, categoría y episodios en los datos SvelteKit. JKAnime publica título, alias, año, categoría, total de episodios y embeds en HTML. Ninguno permite buscar directamente por IMDb/TMDB/Kitsu/AniList/MAL; por eso cada consulta genera múltiples aliases y valida la ficha antes de resolver vídeo.
+AnimeAV1 publica título, aliases (`aka`), fecha, categoría y episodios en sus datos SvelteKit. JKAnime publica título, alias, año, categoría, total de episodios y embeds en HTML. Ninguno permite buscar directamente por IMDb/TMDB/Kitsu/AniList/MAL; por eso cada consulta genera múltiples aliases y valida la ficha antes de resolver vídeo.
 
 ### Limitaciones del mapa
 
@@ -117,7 +116,7 @@ La suite cubre:
 - temporadas separadas, episodios y rechazo de títulos parecidos incorrectos;
 - proveedores, resolvers, deduplicación, aislamiento y contrato HTTP.
 
-La validación en vivo reproducible está en `scripts/validate-live.ts`. Comprueba cada formato de ID con One Piece, la temporada 3 de Haikyuu mediante IMDb/TMDB y una ficha interna Hentaila; después solicita el HLS/MP4 final con los headers declarados y valida `#EXTM3U` en playlists.
+La validación en vivo reproducible está en `scripts/validate-live.ts`. Comprueba cada formato de ID con One Piece y la temporada 3 de Haikyuu mediante IMDb/TMDB; después solicita el HLS/MP4 final con los headers declarados y valida `#EXTM3U` en playlists.
 
 Resultado del 3 de septiembre de 2026:
 
@@ -126,7 +125,6 @@ Resultado del 3 de septiembre de 2026:
 - AnimeAV1 respondió con HLS `200` y `#EXTM3U` desde `player.zilla-networks.com`.
 - JKAnime respondió con HLS `200` y `#EXTM3U` desde `nika.playmudos.com`.
 - Haikyuu T3E1 por IMDb seleccionó la ficha independiente `Karasuno Koukou vs. Shiratorizawa Gakuen Koukou` en AnimeAV1; por TMDB seleccionó `Haikyuu!! Third Season` en JKAnime. Ambos HLS fueron reproducibles.
-- El ID interno Hentaila de Kaede to Suzu E1 produjo tres streams; VIP respondió HLS `200` y `#EXTM3U` desde `cdn.hvidserv.com`.
 
 ## Referencias primarias
 

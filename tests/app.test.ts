@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildApp } from "../src/app.js";
 import { UpstreamTimeoutError } from "../src/errors.js";
 import type { FetchText } from "../src/lib/http.js";
-import type { CatalogService, MetaService, StreamSearchService } from "../src/types.js";
+import type { MetaService, StreamSearchService } from "../src/types.js";
 import { testConfig } from "./helpers.js";
 
 const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
@@ -23,11 +23,11 @@ describe("HTTP addon interface", () => {
     const body = response.json();
     expect(body).toMatchObject({
       id: "org.nuvio.amokin",
-      version: "2.4.0",
+      version: "2.5.0",
       name: "AMOKIN",
       description: "Contenido en Latino y sin torrents para Nuvio/Stremio, creado por y para NIKOMA.",
       logo: "https://amokin.onrender.com/logo.jpg",
-      behaviorHints: { adult: true, p2p: false, configurable: false },
+      behaviorHints: { adult: false, p2p: false, configurable: false },
     });
     expect(body.resources).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: "catalog" }),
@@ -38,9 +38,6 @@ describe("HTTP addon interface", () => {
       }),
     ]));
     expect(body.catalogs.map((catalog: { id: string }) => catalog.id)).toEqual([
-      "hentaila-popular",
-      "hentaila-airing",
-      "hentaila-uncensored",
       "latam-tv",
     ]);
     expect(body.catalogs.at(-1)).toMatchObject({
@@ -52,9 +49,9 @@ describe("HTTP addon interface", () => {
     const health = await app.inject({ method: "GET", url: "/health" });
     expect(health.statusCode).toBe(200);
     expect(health.json()).toMatchObject({
-      version: "2.4.0",
+      version: "2.5.0",
       p2p: false,
-      sources: ["AnimeAV1", "Hentaila", "JKAnime", "Deportes"],
+      sources: ["AnimeAV1", "JKAnime", "Deportes"],
     });
   });
 
@@ -70,23 +67,18 @@ describe("HTTP addon interface", () => {
     expect(response.rawPayload.byteLength).toBeGreaterThan(10_000);
   });
 
-  it("serves catalog pagination and provider-native metadata envelopes", async () => {
-    const catalogService: CatalogService = {
-      getCatalog: vi.fn().mockResolvedValue([{ id: "amokin:hentaila:example", type: "series", name: "Example" }]),
-    };
+  it("serves provider-native metadata envelopes without exposing an anime catalog", async () => {
     const metaService: MetaService = {
       getMeta: vi.fn().mockResolvedValue({ id: "amokin:animeav1:one-piece", type: "series", name: "One Piece" }),
     };
     const app = await buildApp(testConfig(), {
       searchService: { getStreams: vi.fn().mockResolvedValue([]) },
-      catalogService,
       metaService,
     });
     apps.push(app);
-    const catalog = await app.inject({ method: "GET", url: "/catalog/series/hentaila-popular/skip=20.json" });
+    const catalog = await app.inject({ method: "GET", url: "/catalog/series/removed.json" });
     expect(catalog.statusCode).toBe(200);
-    expect(catalog.json().metas).toHaveLength(1);
-    expect(catalogService.getCatalog).toHaveBeenCalledWith("series", "hentaila-popular", 20);
+    expect(catalog.json().metas).toEqual([]);
     const meta = await app.inject({ method: "GET", url: "/meta/series/amokin:animeav1:one-piece.json" });
     expect(meta.statusCode).toBe(200);
     expect(meta.json().meta.name).toBe("One Piece");
@@ -196,7 +188,7 @@ describe("HTTP addon interface", () => {
   it("maps upstream timeouts to a diagnostic response", async () => {
     const app = await buildApp(testConfig(), {
       searchService: {
-        getStreams: vi.fn().mockRejectedValue(new UpstreamTimeoutError("Hentaila")),
+        getStreams: vi.fn().mockRejectedValue(new UpstreamTimeoutError("AnimeAV1")),
       },
     });
     apps.push(app);

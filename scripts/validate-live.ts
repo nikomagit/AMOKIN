@@ -2,7 +2,6 @@ import { loadConfig } from "../src/config.js";
 import { RemoteMetadataProvider } from "../src/metadata/client.js";
 import { parseMediaId } from "../src/metadata/media-id.js";
 import { AnimeAv1Client } from "../src/providers/animeav1/client.js";
-import { HentailaClient } from "../src/providers/hentaila/client.js";
 import { JkAnimeClient } from "../src/providers/jkanime/client.js";
 import { DirectStreamResolverRegistry } from "../src/providers/resolvers.js";
 import type { DirectMediaProvider } from "../src/providers/types.js";
@@ -28,7 +27,6 @@ const metadata = new RemoteMetadataProvider(config);
 const providers: DirectMediaProvider[] = [
   new AnimeAv1Client(config),
   new JkAnimeClient(config),
-  new HentailaClient(config),
 ];
 
 const targets: CheckTarget[] = [
@@ -119,32 +117,6 @@ for (const target of targets) {
       error: error instanceof Error ? error.message : "unknown error",
     });
   }
-}
-
-// Hentaila has its own provider-native catalog identity and does not need an external mapper.
-try {
-  const service = new ProviderSearchService(config, metadata, [
-    { provider: providers.find((provider) => provider.id === "hentaila")!, resolvers: resolver },
-  ]);
-  const streams = await service.getStreams(
-    "series",
-    "amokin:hentaila:kaede-to-suzu-the-animation:1",
-  );
-  const checks = streams[0] ? [await validateStream(streams[0])] : [];
-  results.push({
-    target: "AMOKIN interno • Hentaila E1",
-    providers: ["hentaila"],
-    streams: streams.length,
-    matchedTitles: streams.map((stream) => stream.title.split("\n")[0]),
-    checks,
-  });
-} catch (error) {
-  results.push({
-    target: "AMOKIN interno • Hentaila E1",
-    providers: ["hentaila"],
-    streams: 0,
-    error: error instanceof Error ? error.message : "unknown error",
-  });
 }
 
 process.stdout.write(`${JSON.stringify(results, null, 2)}\n`);

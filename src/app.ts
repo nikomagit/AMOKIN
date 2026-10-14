@@ -25,18 +25,15 @@ import {
 import { manifest } from "./manifest.js";
 import { RemoteMetadataProvider } from "./metadata/client.js";
 import { AnimeAv1Client } from "./providers/animeav1/client.js";
-import { HentailaClient } from "./providers/hentaila/client.js";
 import { JkAnimeClient } from "./providers/jkanime/client.js";
 import { DirectStreamResolverRegistry } from "./providers/resolvers.js";
-import { ProviderCatalogService } from "./services/catalog.js";
 import { ProviderMetaService } from "./services/meta.js";
 import { ProviderSearchService } from "./services/search.js";
 import { ExternalStreamAggregator } from "./services/external-streams.js";
-import type { CatalogService, MetaService, StreamSearchService } from "./types.js";
+import type { MetaService, StreamSearchService } from "./types.js";
 
 export interface AppDependencies {
   searchService?: StreamSearchService;
-  catalogService?: CatalogService;
   metaService?: MetaService;
   externalStreamRequest?: FetchText;
   latamTvRequest?: FetchText;
@@ -53,15 +50,7 @@ interface CatalogParams extends StreamParams {
 }
 
 interface CatalogQuery {
-  skip?: string;
   genre?: string;
-}
-
-function catalogSkip(query: string | undefined, extra: string | undefined): number {
-  const raw = query ?? (extra ? new URLSearchParams(extra).get("skip") ?? undefined : undefined);
-  if (raw === undefined || raw === "") return 0;
-  if (!/^\d+$/.test(raw)) throw new InvalidMediaRequestError("Invalid catalog skip value");
-  return Number(raw);
 }
 
 function publicError(error: AppError) {
@@ -97,9 +86,8 @@ export async function buildApp(
   });
 
   const animeAv1 = new AnimeAv1Client(config);
-  const hentaila = new HentailaClient(config);
   const jkAnime = new JkAnimeClient(config);
-  const animeProviders = [animeAv1, hentaila, jkAnime];
+  const animeProviders = [animeAv1, jkAnime];
   const resolvers = new DirectStreamResolverRegistry(config);
   const localSearchService = dependencies.searchService ?? new ProviderSearchService(
     config,
@@ -111,7 +99,6 @@ export async function buildApp(
     localSearchService,
     dependencies.externalStreamRequest,
   );
-  const catalogService = dependencies.catalogService ?? new ProviderCatalogService(animeProviders);
   const metaService = dependencies.metaService ?? new ProviderMetaService(animeProviders);
   const latamTv = new LatamTvClient({
     catalogUrl: config.sportsTvBaseUrl,
@@ -135,7 +122,7 @@ export async function buildApp(
       manifest: "/manifest.json",
       logo: "/logo.jpg",
       health: "/health",
-      sources: ["AnimeAV1", "Hentaila", "JKAnime", "Deportes", ...config.externalStreamAddons.map((source) => source.name)],
+      sources: ["AnimeAV1", "JKAnime", "Deportes", ...config.externalStreamAddons.map((source) => source.name)],
       streaming: "AMOKIN direct sources + configured stream addons",
       p2p: false,
     };
@@ -158,7 +145,7 @@ export async function buildApp(
     return {
       status: "ok",
       version: manifest.version,
-      sources: ["AnimeAV1", "Hentaila", "JKAnime", "Deportes", ...config.externalStreamAddons.map((source) => source.name)],
+      sources: ["AnimeAV1", "JKAnime", "Deportes", ...config.externalStreamAddons.map((source) => source.name)],
       p2p: false,
     };
   });
@@ -175,8 +162,7 @@ export async function buildApp(
         const origin = requestOrigin(request);
         return { metas: channels.map((channel) => latamTvMeta(channel, origin)) };
       }
-      const skip = catalogSkip(request.query.skip, request.params.extra);
-      return { metas: await catalogService.getCatalog(request.params.type, request.params.id, skip) };
+      return { metas: [] };
     } catch (error) {
       request.log.warn({ error, catalogId: request.params.id }, "Catalog request failed");
       return { metas: [] };

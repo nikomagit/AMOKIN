@@ -5,8 +5,6 @@ export function testConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     host: "127.0.0.1",
     port: 7100,
     logLevel: "silent",
-    hentailaBaseUrl: "https://hentaila.com",
-    hentailaCdnBaseUrl: "https://cdn.hentaila.com",
     animeAv1BaseUrl: "https://animeav1.com",
     animeAv1CdnBaseUrl: "https://cdn.animeav1.com",
     jkAnimeBaseUrl: "https://jkanime.net",

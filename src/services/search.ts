@@ -202,10 +202,3 @@ export class ProviderSearchService implements StreamSearchService {
     return best && (best.exact || best.score >= this.config.minMatchScore) ? best.media : null;
   }
 }
-
-/** Backward-compatible single-provider constructor used by existing self-hosted integrations. */
-export class HentailaSearchService extends ProviderSearchService {
-  constructor(config: AppConfig, metadataProvider: MetadataProvider, hentaila: DirectMediaProvider, resolvers: DirectStreamResolver) {
-    super(config, metadataProvider, [{ provider: hentaila, resolvers }]);
-  }
-}

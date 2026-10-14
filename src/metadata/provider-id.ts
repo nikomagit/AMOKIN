@@ -26,7 +26,7 @@ export function parseProviderMediaId(rawId: string): ParsedProviderMediaId | nul
   const provider = parts[1];
   const slug = parts[2];
   const providers: ProviderId[] = [
-    "animeav1", "hentaila", "jkanime",
+    "animeav1", "jkanime",
   ];
   if (!providers.includes(provider as ProviderId) || !slug || !SAFE_SLUG.test(slug)) {
     throw new InvalidMediaRequestError("Malformed AMOKIN provider ID");

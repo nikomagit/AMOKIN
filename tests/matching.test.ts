@@ -134,18 +134,18 @@ describe("conservative title matching", () => {
 
   it("accepts an exact OVA title for season one but not as a later season", () => {
     const candidate = {
-      title: "Kanojo X Kanojo X Kanojo",
-      slug: "kanojo-x-kanojo-x-kanojo",
-      aka: { "en-us": "Kanojo x Kanojo x Kanojo" },
-      startDate: "2009-12-25",
+      title: "Example OVA",
+      slug: "example-ova",
+      aka: { "en-us": "Example Original Video Animation" },
+      startDate: "2020-01-10",
       category: { name: "OVA", slug: "ova" },
       genres: [],
       episodes: [{ number: 1 }, { number: 2 }, { number: 3 }],
     };
     const metadata: MediaMetadata = {
-      provider: "tmdb", baseId: "76975", type: "series",
-      title: "Kanojo x Kanojo x Kanojo", aliases: [],
-      externalIds: { tmdb: 76975 }, year: 2009, season: 1, episode: 1,
+      provider: "tmdb", baseId: "90001", type: "series",
+      title: "Example OVA", aliases: ["Example Original Video Animation"],
+      externalIds: { tmdb: 90001 }, year: 2020, season: 1, episode: 1,
     };
     expect(isSeasonCompatible(metadata, candidate)).toBe(true);
     expect(isSeasonCompatible({ ...metadata, season: 2 }, candidate)).toBe(false);

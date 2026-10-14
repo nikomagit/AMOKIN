@@ -187,10 +187,6 @@ function catalogQuery(kind: ProviderCatalogKind): URLSearchParams {
   const query = new URLSearchParams();
   if (kind === "popular") query.set("order", "popular");
   if (kind === "airing") query.set("status", "emision");
-  if (kind === "uncensored") {
-    query.set("uncensored", "");
-    query.set("order", "popular");
-  }
   return query;
 }
 
@@ -227,7 +223,6 @@ export class SvelteMediaClient implements DirectMediaProvider {
 
   getCatalog(kind: ProviderCatalogKind, page: number): Promise<ProviderCatalogPage> {
     if (!Number.isSafeInteger(page) || page < 1) return Promise.resolve(this.emptyCatalog());
-    if (kind === "uncensored" && this.id !== "hentaila") return Promise.resolve(this.emptyCatalog());
     return this.catalogCache.getOrCreate(`${kind}:${page}`, async () => {
       const url = this.dataUrl("catalogo");
       for (const [name, value] of catalogQuery(kind)) url.searchParams.append(name, value);
@@ -285,12 +280,11 @@ export class SvelteMediaClient implements DirectMediaProvider {
       totalRecords: integer(pagination?.totalRecords) ?? integer(data.total) ?? results.length,
       orderKey: text(data.orderKey) ?? "default",
       status: integer(filters?.status) ?? null,
-      uncensored: typeof filters?.uncensored === "boolean" ? filters.uncensored : null,
     };
   }
 
   private emptyCatalog(): ProviderCatalogPage {
-    return { results: [], currentPage: 1, recordsPerPage: 20, totalPages: 0, totalRecords: 0, orderKey: "default", status: null, uncensored: null };
+    return { results: [], currentPage: 1, recordsPerPage: 20, totalPages: 0, totalRecords: 0, orderKey: "default", status: null };
   }
 
   private requestOptions() {
